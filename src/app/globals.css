@@ -42,29 +42,42 @@
   --color-ring: #2563eb;
   --color-overlay: rgba(0, 0, 0, 0.6);
   --color-selection: rgba(37, 99, 235, 0.25);
+
+  /* Fonts Integration */
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Brand Compatibility aliases */
+  --color-brand-green: #22c55e;
+  --color-brand-orange: #f59e0b;
+  --color-brand-blue: #3b82f6;
+  --color-brand-purple: #8b5cf6;
+  --color-brand-red: #ef4444;
+  --color-brand-cyan: #06b6d4;
+  --color-brand-pink: #ec4899;
 }
 
 @layer base {
   body {
-    background: var(--background);
-    color: var(--foreground);
-    font-family: var(--font-geist-sans);
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
   }
 
   ::selection {
-    background: var(--selection);
-    color: var(--foreground);
+    background: var(--color-selection);
+    color: var(--color-foreground);
   }
 }
 
-
+/* Custom scrollbar styling */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--surface);
+  background: var(--color-surface);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -76,22 +89,40 @@
   background: #44444c;
 }
 
+/* Helper Custom Classes */
 .text-mono {
-  font-family: var(--font-geist-mono);
+  font-family: var(--font-mono);
 }
 
 .bg-panel {
-  background: var(--surface);
+  background: var(--color-surface);
 }
 
 .bg-panel-secondary {
-  background: var(--surface-secondary);
+  background: var(--color-surface-secondary);
 }
 
 .bg-panel-elevated {
-  background: var(--surface-elevated);
+  background: var(--color-surface-elevated);
 }
 
 .border-default {
-  border-color: var(--border);
+  border-color: var(--color-border);
+}
+
+/* Code block markdown */
+.markdown-body pre {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 4px;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.markdown-body code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background-color: var(--color-surface-secondary);
+  padding: 2px 4px;
+  border-radius: 3px;
 }
