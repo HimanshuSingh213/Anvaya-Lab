@@ -11,7 +11,6 @@ export async function POST(req: Request): Promise<NextResponse<ApiResponse>> {
     try {
         const body = await req.json();
 
-        // 1. Validate request body against schema
         const validationResult = signUpSchema.safeParse(body);
 
         if (!validationResult.success) {
@@ -23,18 +22,15 @@ export async function POST(req: Request): Promise<NextResponse<ApiResponse>> {
 
         const { email, name, password } = validationResult.data;
 
-        // 2. Connect to the database
         await dbConnect();
 
-        // 3. Check if user already exists
         const existingUser = await UserModel.findOne({ email });
 
-        // Generate a 6-digit verification code
+        // Generating a 6-digit verification code
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // Expires in 15 mins
 
         if (existingUser) {
-            // Case A: User exists and is verified -> Return error
             if (existingUser.isEmailVerified) {
                 return NextResponse.json({
                     success: false,
@@ -42,15 +38,12 @@ export async function POST(req: Request): Promise<NextResponse<ApiResponse>> {
                 }, { status: 400 });
             }
 
-            // Case B: User exists but is NOT verified -> Update details and generate new code
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(password, salt);
+            const hashedPassword = await bcrypt.hash(password, 10);
 
             existingUser.name = name;
             existingUser.passwordHash = hashedPassword;
             await existingUser.save();
 
-            // Upsert the verification code
             await verifyCodeModel.findOneAndUpdate(
                 { email, purpose: "verify-email" },
                 {
@@ -76,9 +69,7 @@ export async function POST(req: Request): Promise<NextResponse<ApiResponse>> {
             }, { status: 200 });
         }
 
-        // Case C: New user -> Hash password, create user, generate code, send email
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = new UserModel({
             name,

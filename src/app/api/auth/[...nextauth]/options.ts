@@ -56,7 +56,8 @@ export const authOptions: NextAuthOptions = {
                     id: user._id.toString(),
                     name: user.name,
                     email: user.email,
-                    image: user.avatar
+                    image: user.avatar,
+                    isEmailVerified: true
                 };
             }
         })
@@ -86,6 +87,43 @@ export const authOptions: NextAuthOptions = {
                 session.user.isEmailVerified = token.isEmailVerified as boolean
             }
             return session;
-        }
+        },
+        async signIn({user, account, profile}){
+            if(account?.provider === "credentials"){
+                return true;
+            }
+
+            await dbConnect();
+
+            try {
+                
+                let dbUser = await UserModel.findOne({email: user.email});
+
+                if(!dbUser){
+                    dbUser = await UserModel.create({
+                        name: user.name || "User",
+                        email: user.email as string,
+                        provider: account?.provider as "google" | "github",
+                        avatar: user.image || null,
+                        isEmailVerified: true,
+                        passwordHash: null
+                    });
+                }
+                else{
+                    dbUser.name = user.name || dbUser.name;
+                    dbUser.avatar = user.image || dbUser.avatar;
+                    await dbUser.save()
+                }
+
+                user.id = dbUser._id.toString();
+                user.isEmailVerified = dbUser.isEmailVerified;
+
+                return true;
+
+            } catch (err) {
+                console.error("Error in OAuth signIn callback:", err);
+                return false;
+            }
+        }   
     }
 }

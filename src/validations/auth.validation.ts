@@ -5,7 +5,11 @@ export const signUpSchema = z.object({
         .max(60, { message: "Name must contain at most 60 letters" })
         .regex(/^[A-Za-zÀ-ÖØ-öø-ÿ]+(?:[ '-][A-Za-zÀ-ÖØ-öø-ÿ]+)*$/, { message: "Name contains invalid characters" }),
     email: z.email({ message: "Invalid email address" }),
-    password: z.string().min(8, { message: "password must contain atleast 8 characters" })
+    password: z.string().min(8, { message: "password must contain atleast 8 characters" }),
+    confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
 });
 
 export const signInSchema = z.object({

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
     const { pathname } = request.nextUrl;
 
@@ -10,7 +10,9 @@ export async function middleware(request: NextRequest) {
         || pathname.startsWith("/sign-up")
         || pathname.startsWith("/verify");
 
-    if (token && isAuthPage) {
+    const hasError = request.nextUrl.searchParams.has("error");
+
+    if (token && isAuthPage && !hasError) {
         return NextResponse.redirect(new URL("/workspace", request.url));
     }
 
