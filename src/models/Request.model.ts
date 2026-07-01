@@ -20,7 +20,7 @@ export interface Authentication {
     password?: string;
 }
 
-interface RequestBody {
+export interface RequestBody {
     type: "none" | "json" | "raw" | "form-data" | "x-www-form-urlencoded";
     content: string;
 }
