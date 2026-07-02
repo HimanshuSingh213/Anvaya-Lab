@@ -119,19 +119,19 @@ export async function DELETE(req: Request) {
             }, { status: 404 });
         }
 
-        // 1. Find all collections associated with this workspace
+        // finding all the collections associated with this account
         const collections = await CollectionModel.find({ workspaceId: id });
         const collectionIds = collections.map((col) => col._id);
 
-        // 2. Cascade delete: Delete all Requests in those collections
+        // Deleting all Requests in those collections
         if (collectionIds.length > 0) {
             await RequestModel.deleteMany({ collectionId: { $in: collectionIds } });
         }
 
-        // 3. Cascade delete: Delete all Collections inside this workspace
+        // Deleting all Collections inside this workspace
         await CollectionModel.deleteMany({ workspaceId: id });
 
-        // 4. Delete the workspace itself
+        // Deleting the workspace itself
         await WorkspaceModel.deleteOne({ _id: id });
 
         return NextResponse.json({
@@ -140,7 +140,7 @@ export async function DELETE(req: Request) {
         }, { status: 200 });
 
     } catch (err: any) {
-        console.error("Workspace cascade delete error:", err);
+        console.error("Workspace delete error:", err);
         return NextResponse.json({
             success: false,
             error: err.message || "Server Error"

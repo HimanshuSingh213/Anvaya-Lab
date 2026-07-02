@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { signUpSchema } from "@/validations/auth.validation";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
@@ -65,7 +65,7 @@ const CODE_LINES = [
     { color: "var(--color-border-active)", width: "36%" },
 ];
 
-export default function SignUpPage() {
+export function SignUpPageContent() {
     const router = useRouter();
     const form = useForm<SignUpFormValues>({
         resolver: zodResolver(signUpSchema),
@@ -405,11 +405,11 @@ export default function SignUpPage() {
                                             Discard
                                         </Button>
                                     </AlertDialogTrigger>
-                                    <AlertDialogContent className="bg-surface! border border-[#27272a] text-[#fafafa] rounded-xl shadow-2xl max-w-sm">
+                                    <AlertDialogContent className="bg-surface! border border-[#27272a] text-text-white rounded-xl shadow-2xl max-w-sm">
                                         <AlertDialogHeader>
                                             <div className="flex items-center gap-2 text-danger">
                                                 <AlertTriangle className="h-5 w-5 shrink-0" />
-                                                <AlertDialogTitle className="text-[#fafafa] text-base font-semibold">
+                                                <AlertDialogTitle className="text-text-white text-base font-semibold">
                                                     Discard changes?
                                                 </AlertDialogTitle>
                                             </div>
@@ -418,7 +418,7 @@ export default function SignUpPage() {
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter className="bg-surface-secondary! border-t border-[#27272a] -mx-4 -mb-4 px-4 py-3 rounded-b-xl flex flex-row justify-end gap-2">
-                                            <AlertDialogCancel className="h-9 px-4 bg-transparent border border-[#27272a] text-foreground-muted hover:bg-surface-hover hover:text-[#fafafa] hover:border-border-hover rounded-lg text-sm font-normal transition-all">
+                                            <AlertDialogCancel className="h-9 px-4 bg-transparent border border-[#27272a] text-foreground-muted hover:bg-surface-hover hover:text-text-white hover:border-border-hover rounded-lg text-sm font-normal transition-all">
                                                 Cancel
                                             </AlertDialogCancel>
                                             <AlertDialogAction
@@ -461,5 +461,17 @@ export default function SignUpPage() {
                 </motion.div>
             </div>
         </div>
+    );
+}
+
+export default function SignUpPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <Loader2 className="h-6 w-6 animate-spin text-accent-blue" />
+            </div>
+        }>
+            <SignUpPageContent />
+        </Suspense>
     );
 }

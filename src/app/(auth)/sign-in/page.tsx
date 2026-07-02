@@ -10,7 +10,7 @@ import { Loader2, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
 import {
     Form,
@@ -71,7 +71,7 @@ const GoogleIcon = () => (
 );
 
 /* ─── Main Page ───────────────────────────────────── */
-export default function SignInPage() {
+export function SignInPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [showPassword, setShowPassword] = useState(false);
@@ -397,5 +397,17 @@ export default function SignInPage() {
                 </motion.div>
             </div>
         </div>
+    );
+}
+
+export default function SignInPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <Loader2 className="h-6 w-6 animate-spin text-accent-blue" />
+            </div>
+        }>
+            <SignInPageContent />
+        </Suspense>
     );
 }
