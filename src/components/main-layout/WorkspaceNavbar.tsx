@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { LogOut, Settings, User, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,10 +9,34 @@ import Image from "next/image";
 export default function WorkspaceNavbar() {
     const { data: session, status } = useSession();
     const [isOpen, setIsOpen] = useState(false);
+    const [cachedUser, setCachedUser] = useState<any>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const isLoading = status === "loading";
-    const user = session?.user;
+    // Load cached session on mount
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const cached = localStorage.getItem("anvaya_user_session");
+            if (cached) {
+                try {
+                    setCachedUser(JSON.parse(cached));
+                } catch (e) {
+                    console.error("Failed to parse cached session:", e);
+                }
+            }
+        }
+    }, []);
+
+    // Sync session to cache when loaded
+    useEffect(() => {
+        if (session?.user) {
+            localStorage.setItem("anvaya_user_session", JSON.stringify(session.user));
+            setCachedUser(session.user);
+        }
+    }, [session]);
+
+    const user = session?.user || cachedUser;
+    const isLoading = status === "loading" && !cachedUser;
+    
     const initials = user?.name
         ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
         : "U";
@@ -28,25 +52,31 @@ export default function WorkspaceNavbar() {
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
-    return (
-        <header className="h-16 w-full border-b border-border-dark flex items-center justify-between px-10 shrink-0 bg-panel-charcoal z-30">
+    const handleSignOut = async () => {
+        if (typeof window !== "undefined") {
+            localStorage.removeItem("anvaya_user_session");
+        }
+        await signOut({ callbackUrl: "/sign-in" });
+    };
 
-            {/* Logo */}
-            <div className="flex items-center justify-center h-full py-1.5 gap-2">
-                <div className="relative h-full w-auto aspect-auto flex items-center justify-center">
+    return (
+        <header className="h-12 w-full border-b border-border-dark flex items-center justify-between px-4 shrink-0 bg-panel-charcoal z-30">
+
+            {/* Left: Logo */}
+            <div className="flex items-center h-full py-1.5">
+                <div className="relative h-full w-auto aspect-auto">
                     <Image
                         src="/navBar_logo.png"
                         alt="Anvaya Lab"
                         height={28}
                         width={95}
-                        className="h-9 w-auto object-contain"
+                        className="h-full w-auto object-contain"
                         priority
                     />
                 </div>
-                <span className="bg-panel-hover px-1 py-0.5 text-text-grey text-[10px] font-mono rounded-sm">v0.1.0-Beta</span>
             </div>
 
-            {/* User section  */}
+            {/* Right: User section — slides in with spring bounce after session loads */}
             <motion.div
                 initial={{ x: "110%", opacity: 0 }}
                 animate={isLoading ? { x: "110%", opacity: 0 } : { x: 0, opacity: 1 }}
@@ -63,7 +93,7 @@ export default function WorkspaceNavbar() {
                     onClick={() => setIsOpen(!isOpen)}
                     className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-panel-hover transition-colors cursor-pointer group"
                 >
-                    {/* Avatar */}
+                    {/* Avatar — next/image for external OAuth URLs */}
                     {user?.image ? (
                         <Image
                             src={user.image}
@@ -93,7 +123,7 @@ export default function WorkspaceNavbar() {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -4 }}
                             transition={{ duration: 0.1, ease: "easeOut" }}
-                            className="absolute right-0 top-[calc(100%+6px)] w-52 bg-[#0d0d0e] border border-[#222226] rounded-xl shadow-2xl shadow-black/60 p-1.5 z-60"
+                            className="absolute right-0 top-[calc(100%+6px)] w-52 bg-[#0d0d0e] border border-[#222226] rounded-xl shadow-2xl shadow-black/60 p-1.5 z-50"
                         >
                             {/* User info header */}
                             <div className="px-3 py-2.5 border-b border-[#222226] mb-1">
@@ -119,7 +149,7 @@ export default function WorkspaceNavbar() {
                             <div className="border-t border-[#222226] my-1" />
 
                             <button
-                                onClick={() => signOut({ callbackUrl: "/sign-in" })}
+                                onClick={handleSignOut}
                                 className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-danger hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
                             >
                                 <LogOut className="size-3.5" />

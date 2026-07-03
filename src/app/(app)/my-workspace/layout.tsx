@@ -27,7 +27,7 @@ export default function WorkspaceLayout({
                                 <LeftDock />
                                 <WorkspaceSideBar />
                             </aside>
-                            <main className="flex-1 overflow-y-auto bg-background p-6">
+                            <main className="flex-1 overflow-hidden flex shrink-0 h-full! bg-background">
                                 {children}
                             </main>
                         </div>

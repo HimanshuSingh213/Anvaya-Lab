@@ -149,7 +149,7 @@ export default function WorkspaceSideBar() {
     };
 
     return (
-        <div className="w-56 h-full flex flex-col bg-panel-charcoal border-r border-border-dark select-none">
+        <div className="w-60 h-full flex flex-col bg-panel-charcoal border-r border-border-dark select-none">
             
             {/* Workspace selection dropdown container */}
             <div className="relative shrink-0">
@@ -275,7 +275,14 @@ export default function WorkspaceSideBar() {
             </div>
 
             {/* Collection Vault Container */}
-            <CollectionVault workspaceId={activeWorkspace?._id} />
+            <React.Suspense fallback={
+                <div className="flex-1 flex items-center justify-center p-4 text-[10px] text-text-muted font-mono">
+                    <Loader2 className="size-3 animate-spin mr-1.5" />
+                    Loading Vault...
+                </div>
+            }>
+                <CollectionVault workspaceId={activeWorkspace?._id} />
+            </React.Suspense>
 
             {/* Workspace Delete Confirmation Alert Dialog */}
             <AlertDialog 

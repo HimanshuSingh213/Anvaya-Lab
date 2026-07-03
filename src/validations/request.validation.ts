@@ -1,9 +1,8 @@
-import mongoose from "mongoose";
 import z from "zod";
 
 const ObjectId = z
     .string()
-    .refine((id) => mongoose.Types.ObjectId.isValid(id), {
+    .refine((id) => /^[0-9a-fA-F]{24}$/.test(id), {
         message: "Invalid collection id",
     });
 

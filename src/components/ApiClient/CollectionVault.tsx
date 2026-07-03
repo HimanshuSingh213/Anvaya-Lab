@@ -339,7 +339,7 @@ export default function CollectionVault({ workspaceId }: CollectionVaultProps) {
                                             (requests[col._id] || []).map(req => (
                                                 <Link
                                                     key={req._id}
-                                                    href={`/my-workspace?reqId=${req._id}`}
+                                                    href={`/my-workspace?reqId=${req._id}&colId=${col._id}`}
                                                     className={`group flex items-center justify-between gap-2 px-2 py-1.5 rounded text-xs font-medium cursor-pointer transition-colors duration-150 ${activeRequest === req._id ? "bg-panel-active text-text-white font-semibold" : "text-text-grey hover:text-text-white hover:bg-panel-hover"}`}
                                                 >
                                                     <div className="flex items-center gap-2 min-w-0 flex-1">
