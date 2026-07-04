@@ -17,8 +17,9 @@ import { toast } from "sonner";
 import { ApiResponse } from "@/types/ApiResponse";
 import AddNewCollection from "./AddNewCollection";
 import AddNewRequest from "./AddNewRequest";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useApp } from "@/app/Context/UserContext";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -43,9 +44,7 @@ interface CollectionItem {
     workspaceId: string;
 }
 
-interface CollectionVaultProps {
-    workspaceId?: string;
-}
+
 
 const methodColors: Record<string, string> = {
     GET: "text-success bg-success/5 border-success/15",
@@ -55,8 +54,11 @@ const methodColors: Record<string, string> = {
     DELETE: "text-danger bg-danger/5 border-danger/15",
 };
 
-export default function CollectionVault({ workspaceId }: CollectionVaultProps) {
+export default function CollectionVault() {
+    const { activeWorkspace } = useApp();
+    const workspaceId = activeWorkspace?._id;
     const searchParams = useSearchParams();
+    const router = useRouter();
     const activeRequest = searchParams.get("reqId");
     const [collections, setCollections] = useState<CollectionItem[]>([]);
     const [requests, setRequests] = useState<Record<string, RequestItem[]>>({});
@@ -170,6 +172,10 @@ export default function CollectionVault({ workspaceId }: CollectionVaultProps) {
                     ...prev,
                     [collectionId]: (prev[collectionId] || []).filter(r => r._id !== id)
                 }));
+
+                if (activeRequest === requestToDelete.id) {
+                    router.replace("/my-workspace");
+                }
             }
         } catch (err: any) {
             toast.error("Failed to delete request", {

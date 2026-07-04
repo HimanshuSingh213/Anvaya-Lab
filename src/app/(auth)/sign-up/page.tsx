@@ -58,11 +58,11 @@ const itemVariants: Variants = {
 };
 
 const CODE_LINES = [
-    { color: "var(--color-brand-cyan)", width: "52%" },
-    { color: "var(--color-brand-orange)", width: "68%" },
-    { color: "var(--color-brand-purple)", width: "44%" },
-    { color: "var(--color-brand-blue)", width: "60%" },
-    { color: "var(--color-border-active)", width: "36%" },
+    { color: "#06b6d4", width: "52%" },
+    { color: "#f59e0b", width: "68%" },
+    { color: "#8b5cf6", width: "44%" },
+    { color: "#3b82f6", width: "60%" },
+    { color: "#3e3e4a", width: "36%" },
 ];
 
 export function SignUpPageContent() {

@@ -46,11 +46,11 @@ const itemVariants: Variants = {
 };
 
 const CODE_LINES = [
-    { color: "var(--color-brand-purple)", width: "58%" },
-    { color: "var(--color-brand-cyan)", width: "44%"  },
-    { color: "var(--color-brand-orange)", width: "70%" },
-    { color: "var(--color-brand-blue)", width: "38%"  },
-    { color: "var(--color-border-active)", width: "52%" },
+    { color: "#8b5cf6", width: "58%" },
+    { color: "#06b6d4", width: "44%"  },
+    { color: "#f59e0b", width: "70%" },
+    { color: "#3b82f6", width: "38%"  },
+    { color: "#3e3e4a", width: "52%" },
 ];
 
 /* ─── GitHub SVG ──────────────────────────────────── */
@@ -140,7 +140,7 @@ export function SignInPageContent() {
         }
 
         toast.success("Welcome back!", { description: "Redirecting to your workspace…" });
-        router.replace("/workspace");
+        router.replace("/my-workspace");
     }
 
     return (
@@ -264,7 +264,7 @@ export function SignInPageContent() {
                             type="button"
                             onClick={() => {
                                 localStorage.removeItem("auth_flow");
-                                signIn("github", { callbackUrl: "/workspace" });
+                                signIn("github", { callbackUrl: "/my-workspace" });
                             }}
                             className="w-full h-10 bg-surface hover:bg-surface-secondary border border-border hover:border-border-hover text-foreground-secondary hover:text-foreground transition-all rounded-lg text-sm font-normal"
                         >
@@ -275,7 +275,7 @@ export function SignInPageContent() {
                             type="button"
                             onClick={() => {
                                 localStorage.removeItem("auth_flow");
-                                signIn("google", { callbackUrl: "/workspace" });
+                                signIn("google", { callbackUrl: "/my-workspace" });
                             }}
                             className="w-full h-10 bg-surface hover:bg-surface-secondary border border-border hover:border-border-hover text-foreground-secondary hover:text-foreground transition-all rounded-lg text-sm font-normal"
                         >

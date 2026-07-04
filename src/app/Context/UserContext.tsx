@@ -1,7 +1,22 @@
 "use client";
 
 import { Header, Authentication } from "@/models/Request.model";
-import React, { createContext, useContext, useState, useMemo } from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
+import axios from "axios";
+
+export interface HistoryPayload {
+    _id: string;
+    workspaceId: string;
+    method: string;
+    url: string;
+    headers?: string;
+    body?: string;
+    status: number;
+    responseTime: number;
+    responseSize?: number;
+    response?: string;
+    createdAt: string;
+}
 
 export interface RequestDraft {
     url: string;
@@ -13,6 +28,12 @@ export interface RequestDraft {
         content: string;
     };
     authentication?: Authentication;
+}
+
+interface WorkspaceItem {
+    _id: string;
+    name: string;
+    ownerId: string;
 }
 
 interface UserContextType {
@@ -29,6 +50,16 @@ interface UserContextType {
         python: string;
         http: string;
     };
+    activeWorkspace: WorkspaceItem | null;
+    setActiveWorkspace: React.Dispatch<React.SetStateAction<WorkspaceItem | null>>;
+    history: Array<HistoryPayload>;
+    setHistory: React.Dispatch<React.SetStateAction<Array<HistoryPayload>>>;
+    fetchHistory: (workspaceIdOverride?: string) => Promise<void>;
+    loadingHistory: boolean;
+    activeResponse: any;
+    setActiveResponse: React.Dispatch<React.SetStateAction<any>>;
+    workspaces: Array<WorkspaceItem>;
+    setWorkspaces: React.Dispatch<React.SetStateAction<Array<WorkspaceItem>>>
 }
 
 const defaultDraft: RequestDraft = {
@@ -50,7 +81,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 const generateSnippets = (draft: RequestDraft) => {
     const url = draft.url || "https://api.github.com/users/HimanshuSingh213";
     const method = draft.method || "GET";
-    
+
     // Parse query params if any are enabled
     let fullUrl = url;
     const enabledParams = (draft.queryParams || []).filter(p => p.isEnabled !== false && p.key);
@@ -72,7 +103,7 @@ const generateSnippets = (draft: RequestDraft) => {
 
     // Headers
     const headersList = (draft.headers || []).filter(h => h.isEnabled !== false && h.key);
-    
+
     // Body content
     const hasBody = ["POST", "PUT", "PATCH", "DELETE"].includes(method) && draft.body && draft.body.type !== "none" && draft.body.content;
     const bodyContent = hasBody ? draft.body.content : "";
@@ -274,6 +305,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [activeElement, setActiveElement] = useState("apiClient");
     const [activeRequest, setActiveRequest] = useState("");
     const [requestDraft, setRequestDraft] = useState<RequestDraft>(defaultDraft);
+    const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceItem | null>(null);
+    const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
+    const [history, setHistory] = useState<Array<HistoryPayload>>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const [activeResponse, setActiveResponse] = useState<any>(null);
+
+    const fetchHistory = useCallback(async (workspaceIdOverride?: string) => {
+        const wsId = workspaceIdOverride || activeWorkspace?._id;
+        if (!wsId) return;
+        setLoadingHistory(true);
+        try {
+            const res = await axios.get(`/api/history?workspaceId=${wsId}`);
+            if (res.data.success) {
+                setHistory(res.data.data || []);
+            }
+        } catch (err: any) {
+            console.error("Failed to fetch history:", err);
+        } finally {
+            setLoadingHistory(false);
+        }
+    }, [activeWorkspace]);
 
     const snippets = useMemo(() => {
         return generateSnippets(requestDraft);
@@ -286,7 +338,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setActiveRequest,
         requestDraft,
         setRequestDraft,
-        snippets
+        snippets,
+        activeWorkspace,
+        setActiveWorkspace,
+        history,
+        setHistory,
+        fetchHistory,
+        loadingHistory,
+        activeResponse,
+        setActiveResponse,
+        workspaces,
+        setWorkspaces
     };
 
     return (

@@ -13,6 +13,7 @@ const createHistorySchema = z.object({
     body: z.string().optional().default(""),
     status: z.number(),
     responseTime: z.number(),
+    responseSize: z.number().optional().default(0),
     response: z.string().optional().default("")
 });
 

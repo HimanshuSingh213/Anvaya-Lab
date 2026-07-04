@@ -1,24 +1,16 @@
-import dbConnect from "@/lib/dbConnect";
-import { requestSchema } from "@/validations/request.validation";
+import mongoose from "mongoose";
+import DailyWorkspaceAnalyticsModel from "@/models/WorkspaceStats.model";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "../../auth/[...nextauth]/options";
-import { Authentication, Header, QueryParam, RequestBody } from "@/models/Request.model";
 import { ApiResponse } from "@/types/ApiResponse";
 import { runRequestSchema } from "@/validations/runRequest.validation";
 import axios from "axios";
-
-interface RunPayload {
-    url: string;
-    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-    queryParams?: QueryParam[];
-    headers?: Header[];
-    authentication?: Authentication;
-    body?: RequestBody;
-}
+import dbConnect from "@/lib/dbConnect";
 
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>> {
     try {
+        await dbConnect();
         // verifying session
         const session = await getServerSession(authOptions);
 
@@ -40,7 +32,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
             }, { status: 400 });
         }
 
-        const { url, method, queryParams, headers, authentication, body } = validationResult.data;
+        const { workspaceId, url, method, queryParams, headers, authentication, body } = validationResult.data;
 
         // completing the url
         const urlObj = new URL(url);
@@ -96,7 +88,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
         }
 
         // Measuring req latency and executing req
-        const startTime = performance.now();  // return a high resolution timestamp in ms
+        const startTime = performance.now();
 
         let response;
         try {
@@ -106,7 +98,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
                 headers: requestHeaders,
                 data: requestData,
                 timeout: 15000,
-                validateStatus: () => true, // Captures 4xx/5xx errors safely
+                validateStatus: () => true,
                 responseType: "text",
             });
         } catch (err: any) {
@@ -140,6 +132,37 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
         try {
             finalBody = JSON.parse(responseBodyStr);
         } catch { }
+
+        const statusCode = response.status;
+        const statusGroup = statusCode >= 200 && statusCode < 300 ? "2xx" :
+                            statusCode >= 300 && statusCode < 400 ? "3xx" :
+                            statusCode >= 400 && statusCode < 500 ? "4xx" : "5xx";
+        const currentDate = new Date().toISOString().split("T")[0];
+
+        try {
+            if (workspaceId && mongoose.Types.ObjectId.isValid(workspaceId)) {
+                const updateQuery: any = {
+                    $inc: {
+                        totalRequests: 1,
+                        totalLatency: duration,
+                        [`methods.${method.toUpperCase()}`]: 1,
+                        [`statusCodes.${statusGroup}`]: 1
+                    }
+                };
+
+                await DailyWorkspaceAnalyticsModel.findOneAndUpdate(
+                    { workspaceId: new mongoose.Types.ObjectId(workspaceId) as any, date: currentDate },
+                    updateQuery,
+                    {
+                        upsert: true,
+                        new: true
+                    }
+                )
+            }
+
+        } catch (err) {
+            console.error("Failed to update workspace stats:", err);
+        }
 
         // Returning response metadata
         return NextResponse.json({

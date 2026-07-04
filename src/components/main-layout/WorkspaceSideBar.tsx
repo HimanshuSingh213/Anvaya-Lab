@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
+import React, { Suspense, useEffect, useState } from "react";
+import { Activity, ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -21,6 +21,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createWorkspaceSchema } from "@/validations/workspace.validation";
+import { useApp } from "@/app/Context/UserContext";
 
 interface WorkspaceItem {
     _id: string;
@@ -31,8 +32,7 @@ interface WorkspaceItem {
 type WorkspaceFormValues = z.infer<typeof createWorkspaceSchema>;
 
 export default function WorkspaceSideBar() {
-    const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
-    const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceItem | null>(null);
+    const { activeWorkspace, setActiveWorkspace, workspaces, setWorkspaces, activeElement } = useApp();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
@@ -150,10 +150,10 @@ export default function WorkspaceSideBar() {
 
     return (
         <div className="w-60 h-full flex flex-col bg-panel-charcoal border-r border-border-dark select-none">
-            
+
             {/* Workspace selection dropdown container */}
             <div className="relative shrink-0">
-                <div 
+                <div
                     onClick={() => !loading && setIsDropdownOpen(!isDropdownOpen)}
                     className="px-4 py-3 bg-panel-charcoal border-b border-border-dark flex flex-col group cursor-pointer hover:bg-panel-hover transition-colors"
                 >
@@ -169,10 +169,9 @@ export default function WorkspaceSideBar() {
                                 {activeWorkspace?.name || "Personal Sandbox"}
                             </span>
                         )}
-                        <ChevronDown 
-                            className={`size-3.5 text-text-muted group-hover:text-text-white transition-transform duration-200 ${
-                                isDropdownOpen ? "rotate-180" : ""
-                            }`} 
+                        <ChevronDown
+                            className={`size-3.5 text-text-muted group-hover:text-text-white transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""
+                                }`}
                         />
                     </h3>
                 </div>
@@ -181,17 +180,17 @@ export default function WorkspaceSideBar() {
                 <AnimatePresence>
                     {isDropdownOpen && (
                         <>
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="fixed inset-0 z-40" 
+                                className="fixed inset-0 z-40"
                                 onClick={() => {
                                     setIsDropdownOpen(false);
                                     setIsCreatingWorkspace(false);
-                                }} 
+                                }}
                             />
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, scale: 0.96, y: -4 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.96, y: -4 }}
@@ -208,11 +207,10 @@ export default function WorkspaceSideBar() {
                                                     setActiveWorkspace(w);
                                                     setIsDropdownOpen(false);
                                                 }}
-                                                className={`group flex items-center justify-between gap-2 px-3 py-2 text-[13px] rounded-md transition-all duration-200 cursor-pointer ${
-                                                    isActive 
-                                                        ? "bg-[#18181b] text-white font-medium" 
-                                                        : "text-text-grey hover:text-text-white hover:bg-[#18181b]/50"
-                                                }`}
+                                                className={`group flex items-center justify-between gap-2 px-3 py-2 text-[13px] rounded-md transition-all duration-200 cursor-pointer ${isActive
+                                                    ? "bg-[#18181b] text-white font-medium"
+                                                    : "text-text-grey hover:text-text-white hover:bg-[#18181b]/50"
+                                                    }`}
                                             >
                                                 <span className="truncate flex-1">{w.name}</span>
                                                 <button
@@ -226,14 +224,14 @@ export default function WorkspaceSideBar() {
                                         );
                                     })}
                                 </div>
-                                
+
                                 <div className="border-t border-[#222226] my-1" />
-                                
+
                                 <div className="px-1 py-1">
                                     {isCreatingWorkspace ? (
                                         <form onSubmit={handleSubmit(onWorkspaceSubmit)} className="flex flex-col gap-2 p-1.5 bg-[#161618] rounded-md border border-[#222226]">
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 placeholder="Workspace name..."
                                                 {...register("name")}
                                                 className="w-full h-8 px-2.5 bg-[#09090b] border border-[#222226] focus:border-[#3f3f46] rounded text-xs text-white outline-none transition-colors"
@@ -243,14 +241,14 @@ export default function WorkspaceSideBar() {
                                                 <span className="text-[10px] text-danger px-1">{errors.name.message}</span>
                                             )}
                                             <div className="flex justify-end gap-1.5">
-                                                <button 
+                                                <button
                                                     type="button"
                                                     onClick={() => setIsCreatingWorkspace(false)}
                                                     className="text-[10px] text-text-grey hover:text-text-white px-2 py-1 rounded transition-colors"
                                                 >
                                                     Cancel
                                                 </button>
-                                                <button 
+                                                <button
                                                     type="submit"
                                                     className="text-[10px] text-white bg-accent-blue hover:bg-accent-hover rounded px-3 py-1 font-semibold transition-colors"
                                                 >
@@ -259,7 +257,7 @@ export default function WorkspaceSideBar() {
                                             </div>
                                         </form>
                                     ) : (
-                                        <button 
+                                        <button
                                             onClick={() => setIsCreatingWorkspace(true)}
                                             className="flex items-center gap-2 w-full text-left px-2 py-2 text-[13px] text-text-grey hover:text-text-white rounded-md hover:bg-[#18181b]/50 transition-all duration-200 font-medium cursor-pointer"
                                         >
@@ -274,19 +272,30 @@ export default function WorkspaceSideBar() {
                 </AnimatePresence>
             </div>
 
-            {/* Collection Vault Container */}
-            <React.Suspense fallback={
-                <div className="flex-1 flex items-center justify-center p-4 text-[10px] text-text-muted font-mono">
-                    <Loader2 className="size-3 animate-spin mr-1.5" />
-                    Loading Vault...
+            {(activeElement === "apiClient" || activeElement === "collections") && (
+                <Suspense fallback={
+                    <div className="flex-1 flex items-center justify-center p-4 text-[10px] text-text-muted font-mono">
+                        <Loader2 className="size-3 animate-spin mr-1.5" />
+                        Loading Vault...
+                    </div>
+                }>
+                    {/* Collection Vault Container */}
+                    <CollectionVault />
+                </Suspense>
+            )}
+
+            {(activeElement === "analytics") && (
+                <div className="bg-background flex flex-1 h-full flex-col min-h-0 items-center p-3 pt-24 gap-3">
+                    <Activity className="size-9 text-text-muted "/>
+                    <p className="text-mono text-xs text-text-white text-center">Developer Analytics</p>
+                    <p className="text-mono text-[10px] text-text-muted text-center">Monitor endpoints throughput, median latency metrics, HTTP status graphs, and bandwidth overhead charts.</p>
                 </div>
-            }>
-                <CollectionVault workspaceId={activeWorkspace?._id} />
-            </React.Suspense>
+            )}
+
 
             {/* Workspace Delete Confirmation Alert Dialog */}
-            <AlertDialog 
-                open={workspaceToDelete !== null} 
+            <AlertDialog
+                open={workspaceToDelete !== null}
                 onOpenChange={(open) => !open && setWorkspaceToDelete(null)}
             >
                 <AlertDialogContent>
@@ -300,7 +309,7 @@ export default function WorkspaceSideBar() {
                         <AlertDialogCancel onClick={() => setWorkspaceToDelete(null)}>
                             Cancel
                         </AlertDialogCancel>
-                        <AlertDialogAction 
+                        <AlertDialogAction
                             onClick={confirmDeleteWorkspace}
                             variant="destructive"
                             className="bg-danger! hover:bg-danger/90! text-text-white"

@@ -9,6 +9,7 @@ export interface RequestHistory {
     body: string;
     status: number;
     responseTime: number;
+    responseSize: number;
     response: string;
     createdAt: Date;
     updatedAt: Date;
@@ -51,6 +52,10 @@ const RequestHistorySchema: Schema<RequestHistory> = new Schema({
     responseTime: {
         type: Number,
         required: [true, "Response latency is required"]
+    },
+    responseSize: {
+        type: Number,
+        default: 0
     },
     response: {
         type: String,

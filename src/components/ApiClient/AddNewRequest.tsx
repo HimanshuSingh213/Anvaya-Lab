@@ -43,7 +43,7 @@ export default function AddNewRequest({
                 collectionId,
                 name: data.name.trim(),
                 method: "GET",
-                url: "https://api.github.com/users/HimanshuSingh213",
+                url: "https://api.github.com/users/hiteshchoudhary",
                 queryParams: [],
                 headers: [],
                 authentication: { type: "none" },

@@ -35,7 +35,7 @@ export default function ApiClient() {
                                 AnvayaLab Core Workspace
                             </h2>
                             <p className="text-[11px] text-text-muted leading-relaxed font-mono">
-                                Load a request from your saved collections, browse the active command palette (⌘K), or create a new HTTP sandbox request to begin testing.
+                                Load a request from your saved collections, create a new HTTP sandbox request to begin testing.
                             </p>
                         </div>
                     </div>

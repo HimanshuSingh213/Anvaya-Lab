@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { 
-    Edit2, Plus, Trash2, Globe, ChevronDown, 
+import {
+    Edit2, Plus, Trash2, Globe, ChevronDown,
     Play, Loader2, Check, X, Lock, Key,
+    Clock,
 } from "lucide-react";
 import { useApp } from "@/app/Context/UserContext";
 import { useSearchParams } from "next/navigation";
@@ -101,7 +102,7 @@ function InlineEdit({
     }
 
     return (
-        <div 
+        <div
             onClick={() => setIsEditing(true)}
             className={`group/edit cursor-pointer hover:bg-panel-hover px-2 py-1 -mx-2 rounded transition-all duration-150 border border-transparent flex items-center gap-1.5 w-fit ${className}`}
         >
@@ -131,7 +132,7 @@ const authTypes = [
 ];
 
 export default function RequestCreator() {
-    const { requestDraft, setRequestDraft } = useApp();
+    const { requestDraft, setRequestDraft, activeResponse: response, setActiveResponse: setResponse, activeWorkspace, fetchHistory } = useApp();
     const searchParams = useSearchParams();
     const reqId = searchParams.get("reqId");
     const colId = searchParams.get("colId");
@@ -146,9 +147,8 @@ export default function RequestCreator() {
     const [authDropdownOpen, setAuthDropdownOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<"params" | "headers" | "auth" | "body">("params");
     const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved" | "error">("saved");
-    
+
     // Response Execution States
-    const [response, setResponse] = useState<any>(null);
     const [executing, setExecuting] = useState(false);
 
     // Refs for Dropdowns and scroll syncing
@@ -186,8 +186,8 @@ export default function RequestCreator() {
     useEffect(() => {
         if (!reqId || !colId) {
             setName("GET Request");
-            setDescription("Retrieves public profile details of GitHub user 'Himanshu Singh'.");
-            const initialUrl = "https://api.github.com/users/HimanshuSingh213";
+            setDescription("Retrieves public profile details of GitHub user 'Hitesh Choudhary'.");
+            const initialUrl = "https://api.github.com/users/hiteshchoudhary";
             setUrlInput(initialUrl);
             setRequestDraft({
                 url: initialUrl,
@@ -213,7 +213,7 @@ export default function RequestCreator() {
                     if (reqData) {
                         setName(reqData.name || "Unnamed Request");
                         setDescription(reqData.description || "");
-                        
+
                         const draftData = {
                             url: reqData.url || "",
                             method: reqData.method || "GET",
@@ -223,7 +223,7 @@ export default function RequestCreator() {
                             authentication: reqData.authentication || { type: "none" }
                         };
                         setRequestDraft(draftData);
-                        
+
                         // Construct and set full URL representation
                         const fullUrl = buildFullUrl(reqData.url || "", reqData.queryParams || []);
                         setUrlInput(fullUrl);
@@ -264,15 +264,23 @@ export default function RequestCreator() {
     const buildFullUrl = (baseUrl: string, queryParams: Array<any>) => {
         const enabledParams = queryParams.filter(p => p.isEnabled && p.key);
         if (enabledParams.length === 0) return baseUrl;
-        
+
         const queryString = enabledParams
             .map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
             .join("&");
-        
-        return baseUrl.includes("?") 
-            ? `${baseUrl}&${queryString}` 
+
+        return baseUrl.includes("?")
+            ? `${baseUrl}&${queryString}`
             : `${baseUrl}?${queryString}`;
     };
+
+    // Sync urlInput when requestDraft updates externally (e.g. from history click)
+    useEffect(() => {
+        const fullUrl = buildFullUrl(requestDraft.url || "", requestDraft.queryParams || []);
+        if (fullUrl !== urlInput) {
+            setUrlInput(fullUrl);
+        }
+    }, [requestDraft.url, requestDraft.queryParams, urlInput]);
 
     // Handle user manual editing of URL string
     const handleUrlInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -281,7 +289,7 @@ export default function RequestCreator() {
         setSaveStatus("unsaved");
 
         const { baseUrl, params } = parseUrlParams(fullUrlVal, requestDraft.queryParams || []);
-        
+
         setRequestDraft(prev => ({
             ...prev,
             url: baseUrl,
@@ -382,6 +390,7 @@ export default function RequestCreator() {
         setResponse(null);
         try {
             const res = await axios.post("/api/requests/run", {
+                workspaceId: activeWorkspace?._id || "",
                 url: requestDraft.url,
                 method: requestDraft.method,
                 queryParams: requestDraft.queryParams,
@@ -390,10 +399,27 @@ export default function RequestCreator() {
                 authentication: requestDraft.authentication
             });
             if (res.data.success && res.data.data) {
-                setResponse(res.data.data);
+                const runnerData = res.data.data;
+
+                setResponse(runnerData);
+
+                await axios.post("/api/history", {
+                    workspaceId: activeWorkspace?._id || "",
+                    url: buildFullUrl(requestDraft.url, requestDraft.queryParams || []),
+                    method: requestDraft.method,
+                    headers: JSON.stringify(requestDraft.headers || []),
+                    body: typeof requestDraft.body === "string" ? requestDraft.body : JSON.stringify(requestDraft.body || {}),
+                    status: runnerData.status,
+                    responseTime: runnerData.time,
+                    responseSize: runnerData.size || 0,
+                    response: typeof runnerData.body === 'string' ? runnerData.body : JSON.stringify(runnerData.body || "")
+                });
+                fetchHistory();
             } else {
                 toast.error("Failed to retrieve request response.");
             }
+
+
         } catch (err: any) {
             toast.error(err.response?.data?.error || err.message || "Failed to execute request.");
         } finally {
@@ -419,7 +445,7 @@ export default function RequestCreator() {
                         className="text-xs font-semibold min-h-[22px] w-fit tracking-tight"
                         inputClassName="text-xs font-semibold w-[350px] h-7 px-2 py-0.5"
                     />
-                    
+
                     {/* Auto-save Status indicator badge */}
                     {reqId && (
                         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono border border-border-dark bg-panel-charcoal">
@@ -516,7 +542,7 @@ export default function RequestCreator() {
                         className="bg-text-white hover:bg-text-white/90 text-bg-black text-[10px] font-bold rounded-l-md px-3 h-8 flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-75 disabled:cursor-not-allowed border-r border-border-dark"
                     >
                         {executing ? (
-                            <Loader2 className="size-3 animate-spin" />
+                            <Clock className="size-3 animate-spin" />
                         ) : (
                             <Play className="size-3 fill-bg-black stroke-bg-black" />
                         )}
@@ -544,11 +570,10 @@ export default function RequestCreator() {
                         <button
                             key={t.id}
                             onClick={() => setActiveTab(t.id as any)}
-                            className={`px-3 py-1.5 text-[10px] font-medium border-b-2 transition-all cursor-pointer ${
-                                isActive 
-                                    ? "border-text-white text-text-white font-semibold" 
-                                    : "border-transparent text-text-muted hover:text-text-grey"
-                            }`}
+                            className={`px-3 py-1.5 text-[10px] font-medium border-b-2 transition-all cursor-pointer ${isActive
+                                ? "border-text-white text-text-white font-semibold"
+                                : "border-transparent text-text-muted hover:text-text-grey"
+                                }`}
                         >
                             {t.label}
                         </button>
@@ -558,7 +583,7 @@ export default function RequestCreator() {
 
             {/* Tab content view container */}
             <div className="flex-1 min-h-0 mb-4 overflow-y-auto custom-editor-scrollbar shrink-0">
-                
+
                 {/* Query Params Tab View */}
                 {activeTab === "params" && (
                     <div className="space-y-3">
@@ -747,7 +772,7 @@ export default function RequestCreator() {
                     <div className="space-y-3 max-w-md">
                         <div className="flex flex-col gap-1.5">
                             <label className="text-[9px] text-text-muted font-mono tracking-wider uppercase">Auth Protocol</label>
-                            
+
                             {/* Custom Auth dropdown */}
                             <div className="relative w-[160px]" ref={authDropdownRef}>
                                 <button
@@ -777,11 +802,10 @@ export default function RequestCreator() {
                                                     setAuthDropdownOpen(false);
                                                     setSaveStatus("unsaved");
                                                 }}
-                                                className={`w-full text-left px-2 py-1.5 text-[10px] rounded transition-colors ${
-                                                    (requestDraft.authentication?.type || "none") === t.value 
-                                                        ? "bg-panel-active text-text-white font-medium" 
-                                                        : "text-text-grey hover:text-text-white hover:bg-panel-active/50"
-                                                }`}
+                                                className={`w-full text-left px-2 py-1.5 text-[10px] rounded transition-colors ${(requestDraft.authentication?.type || "none") === t.value
+                                                    ? "bg-panel-active text-text-white font-medium"
+                                                    : "text-text-grey hover:text-text-white hover:bg-panel-active/50"
+                                                    }`}
                                             >
                                                 {t.label}
                                             </button>
@@ -885,7 +909,7 @@ export default function RequestCreator() {
                             /* Bordered Editor Area matching photo design */
                             <div className="flex bg-bg-black border border-border-dark rounded-md overflow-hidden min-h-[120px] h-[120px] w-full">
                                 {/* Line Numbers Column */}
-                                <div 
+                                <div
                                     ref={lineNumbersRef}
                                     className="w-8 bg-transparent text-right py-1.5 pr-2 text-[11px] font-mono text-text-disabled select-none border-r border-border-dark overflow-hidden"
                                 >
@@ -893,7 +917,7 @@ export default function RequestCreator() {
                                         <div key={n} className="h-[18px] leading-[18px] text-right">{n}</div>
                                     ))}
                                 </div>
-                                
+
                                 {/* Code Editor Textarea */}
                                 <textarea
                                     ref={textareaRef}
@@ -901,8 +925,8 @@ export default function RequestCreator() {
                                     onChange={(e) => handleBodyChange("content", e.target.value)}
                                     onScroll={handleTextareaScroll}
                                     placeholder={
-                                        requestDraft.body?.type === "json" 
-                                            ? "{\n  \"key\": \"value\"\n}" 
+                                        requestDraft.body?.type === "json"
+                                            ? "{\n  \"key\": \"value\"\n}"
                                             : "Enter raw request payload..."
                                     }
                                     className="flex-1 bg-transparent py-1.5 px-2 font-mono text-[11px] text-text-white outline-none border-none resize-none overflow-y-scroll leading-[18px] h-full placeholder:text-text-disabled custom-editor-scrollbar"

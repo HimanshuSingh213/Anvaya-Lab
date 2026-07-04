@@ -13,10 +13,10 @@ export async function proxy(request: NextRequest) {
     const hasError = request.nextUrl.searchParams.has("error");
 
     if (token && isAuthPage && !hasError) {
-        return NextResponse.redirect(new URL("/workspace", request.url));
+        return NextResponse.redirect(new URL("/my-workspace", request.url));
     }
 
-    const isProtectedPage = pathname.startsWith("/workspace") || pathname.startsWith("/settings");
+    const isProtectedPage = pathname.startsWith("/my-workspace") || pathname.startsWith("/settings");
 
     if (!token && isProtectedPage) {
         return NextResponse.redirect(new URL("/sign-in", request.url));
@@ -30,7 +30,7 @@ export const config = {
         "/sign-in",
         "/sign-up",
         "/verify",
-        "/workspace/:path*",
+        "/my-workspace/:path*",
         "/settings/:path*",
     ]
 };
