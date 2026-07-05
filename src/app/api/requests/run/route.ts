@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import DailyWorkspaceAnalyticsModel from "@/models/WorkspaceStats.model";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "../../auth/[...nextauth]/options";
@@ -7,6 +6,7 @@ import { ApiResponse } from "@/types/ApiResponse";
 import { runRequestSchema } from "@/validations/runRequest.validation";
 import axios from "axios";
 import dbConnect from "@/lib/dbConnect";
+import WorkspaceStatsModel from "@/models/WorkspaceStats.model";
 
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>> {
     try {
@@ -150,12 +150,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
                     }
                 };
 
-                await DailyWorkspaceAnalyticsModel.findOneAndUpdate(
+                await WorkspaceStatsModel.findOneAndUpdate(
                     { workspaceId: new mongoose.Types.ObjectId(workspaceId) as any, date: currentDate },
                     updateQuery,
                     {
-                        upsert: true,
-                        new: true
+                        upsert: true
                     }
                 )
             }

@@ -59,7 +59,11 @@ interface UserContextType {
     activeResponse: any;
     setActiveResponse: React.Dispatch<React.SetStateAction<any>>;
     workspaces: Array<WorkspaceItem>;
-    setWorkspaces: React.Dispatch<React.SetStateAction<Array<WorkspaceItem>>>
+    setWorkspaces: React.Dispatch<React.SetStateAction<Array<WorkspaceItem>>>;
+    requestName: string;
+    setRequestName: React.Dispatch<React.SetStateAction<string>>;
+    requestDescription: string;
+    setRequestDescription: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const defaultDraft: RequestDraft = {
@@ -310,6 +314,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [history, setHistory] = useState<Array<HistoryPayload>>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [activeResponse, setActiveResponse] = useState<any>(null);
+    const [requestName, setRequestName] = useState("GET Request");
+    const [requestDescription, setRequestDescription] = useState("No description provided. Click to add one.");
 
     const fetchHistory = useCallback(async (workspaceIdOverride?: string) => {
         const wsId = workspaceIdOverride || activeWorkspace?._id;
@@ -348,7 +354,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         activeResponse,
         setActiveResponse,
         workspaces,
-        setWorkspaces
+        setWorkspaces,
+        requestName,
+        setRequestName,
+        requestDescription,
+        setRequestDescription
     };
 
     return (

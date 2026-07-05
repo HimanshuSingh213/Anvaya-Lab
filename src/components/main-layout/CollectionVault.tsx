@@ -15,8 +15,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { toast } from "sonner";
 import { ApiResponse } from "@/types/ApiResponse";
-import AddNewCollection from "./AddNewCollection";
-import AddNewRequest from "./AddNewRequest";
+import AddNewCollection from "../ApiClient/AddNewCollection";
+import AddNewRequest from "../ApiClient/AddNewRequest";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useApp } from "@/app/Context/UserContext";
@@ -144,6 +144,11 @@ export default function CollectionVault() {
                     delete next[id];
                     return next;
                 });
+
+                // checking if the active request belong to collection to delete 
+                if (searchParams.get("colId") === id) {
+                    router.replace("/my-workspace");
+                }
             }
         } catch (err: any) {
             toast.error("Failed to delete collection", {

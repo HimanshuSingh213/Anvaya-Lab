@@ -132,14 +132,23 @@ const authTypes = [
 ];
 
 export default function RequestCreator() {
-    const { requestDraft, setRequestDraft, activeResponse: response, setActiveResponse: setResponse, activeWorkspace, fetchHistory } = useApp();
+    const {
+        requestDraft,
+        setRequestDraft,
+        activeResponse: response,
+        setActiveResponse: setResponse,
+        activeWorkspace,
+        fetchHistory,
+        activeRequest,
+        setActiveRequest,
+        requestName: name,
+        setRequestName: setName,
+        requestDescription: description,
+        setRequestDescription: setDescription
+    } = useApp();
     const searchParams = useSearchParams();
     const reqId = searchParams.get("reqId");
     const colId = searchParams.get("colId");
-
-    // Request settings (Name and description)
-    const [name, setName] = useState("GET Request");
-    const [description, setDescription] = useState("No description provided. Click to add one.");
 
     // UI States
     const [urlInput, setUrlInput] = useState("");
@@ -184,6 +193,12 @@ export default function RequestCreator() {
 
     // Load active request details using existing collection API and filtering by ID
     useEffect(() => {
+        if (activeRequest === (reqId || "") && requestDraft.url && (reqId ? requestDraft.url !== "" : true)) {
+            return;
+        }
+
+        setActiveRequest(reqId || "");
+
         if (!reqId || !colId) {
             setName("GET Request");
             setDescription("Retrieves public profile details of GitHub user 'Hitesh Choudhary'.");
@@ -414,6 +429,8 @@ export default function RequestCreator() {
                     responseSize: runnerData.size || 0,
                     response: typeof runnerData.body === 'string' ? runnerData.body : JSON.stringify(runnerData.body || "")
                 });
+
+                // await axios.
                 fetchHistory();
             } else {
                 toast.error("Failed to retrieve request response.");

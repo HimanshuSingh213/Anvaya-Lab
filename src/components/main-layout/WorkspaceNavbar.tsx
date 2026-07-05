@@ -121,7 +121,7 @@ export default function WorkspaceNavbar() {
                                 className="rounded-full object-cover ring-1 ring-border-dark group-hover:ring-accent-blue/50 transition-all"
                             />
                         ) : (
-                            <div className="size-7 rounded-full bg-linear-to-br from-accent-blue/80 to-purple-600/80 flex items-center justify-center text-[11px] font-bold text-white ring-1 ring-border-dark group-hover:ring-accent-blue/50 transition-all">
+                            <div className="size-7 rounded-full bg-pink-500 flex items-center justify-center text-[11px] font-bold text-white ring-1 ring-border-dark group-hover:ring-accent-blue/50 transition-all">
                                 {initials}
                             </div>
                         )}

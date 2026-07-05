@@ -1,7 +1,6 @@
 "use client"
 import { useApp } from '@/app/Context/UserContext';
 import { LucideIcon, LucideFolder, LucideTerminal, Settings, Activity } from 'lucide-react'
-import { useState } from 'react';
 
 interface SidebarElement {
     name: string;

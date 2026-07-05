@@ -21,7 +21,11 @@ export interface WorkspaceStats {
 }
 
 const WorkspaceStatsSchema = new Schema<WorkspaceStats>({
-    workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", required: true },
+    workspaceId: { 
+        type: Schema.Types.ObjectId, 
+        ref: "Workspace", 
+        required: true 
+    },
     date: { type: String, required: true }, 
     totalRequests: { type: Number, default: 0 },
     totalLatency: { type: Number, default: 0 },
