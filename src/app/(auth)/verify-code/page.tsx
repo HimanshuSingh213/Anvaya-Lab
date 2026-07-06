@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, Variants } from "framer-motion";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -11,7 +11,6 @@ import axios, { AxiosError } from "axios";
 import { Button } from "@/components/ui/button";
 import { ApiResponse } from "@/types/ApiResponse";
 
-/* ─── Animation variants ─────────────────────────── */
 const containerVariants: Variants = {
     hidden: {},
     show: { transition: { staggerChildren: 0.1, delayChildren: 0.05 } },
@@ -26,7 +25,6 @@ const itemVariants: Variants = {
     },
 };
 
-/* ─── OTP slot component ─────────────────────────── */
 function OtpSlot({
     value,
     isFocused,
@@ -59,7 +57,6 @@ function OtpSlot({
                                 : "border-border bg-surface text-foreground",
             ].join(" ")}
         >
-            {/* Active cursor blink */}
             {isFocused && !value && (
                 <motion.div
                     className="w-px h-6 bg-accent absolute"
@@ -68,7 +65,6 @@ function OtpSlot({
                 />
             )}
             {value}
-            {/* Bottom accent line */}
             {(isFocused || value) && !isError && !isSuccess && (
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-[2px] rounded-full bg-accent" />
             )}
@@ -76,11 +72,9 @@ function OtpSlot({
     );
 }
 
-/* ─── Main Page ──────────────────────────────────── */
 export default function VerifyCodePage() {
-    const params = useParams<{ email: string }>();
-    const email = decodeURIComponent(params.email);
     const router = useRouter();
+    const [email, setEmail] = useState<string>("");
 
     const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
     const [focusedIndex, setFocusedIndex] = useState<number>(0);
@@ -92,17 +86,24 @@ export default function VerifyCodePage() {
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
     useEffect(() => {
+        const storedEmail = localStorage.getItem("verify_email");
+        if (!storedEmail) {
+            router.replace("/sign-in");
+        } else {
+            setEmail(storedEmail);
+        }
+    }, [router]);
+
+    useEffect(() => {
         inputRefs.current[0]?.focus();
     }, []);
 
-    /* Cooldown ticker */
     useEffect(() => {
         if (resendCooldown <= 0) return;
         const id = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
         return () => clearTimeout(id);
     }, [resendCooldown]);
 
-    /* Auto-submit when all 6 digits filled */
     useEffect(() => {
         if (otp.every((d) => d !== "") && status === "idle") {
             handleVerify(otp.join(""));
@@ -160,7 +161,7 @@ export default function VerifyCodePage() {
     };
 
     const handleVerify = async (code: string) => {
-        if (isLoading) return;
+        if (isLoading || !email) return;
         setIsLoading(true);
         setStatus("idle");
 
@@ -171,6 +172,7 @@ export default function VerifyCodePage() {
                 toast.success("Email verified!", {
                     description: "Redirecting you to sign in…",
                 });
+                localStorage.removeItem("verify_email");
                 setTimeout(() => router.replace("/sign-in"), 1800);
             }
         } catch (err) {
@@ -189,7 +191,7 @@ export default function VerifyCodePage() {
     };
 
     const handleResend = async () => {
-        if (isResending || resendCooldown > 0) return;
+        if (isResending || resendCooldown > 0 || !email) return;
         setIsResending(true);
         try {
             await axios.post<ApiResponse>("/api/signup", {
@@ -212,7 +214,6 @@ export default function VerifyCodePage() {
 
     return (
         <div className="min-h-screen w-full bg-background flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Background glow orbs */}
             <div
                 className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full blur-[120px] pointer-events-none"
                 style={{ background: "color-mix(in srgb, var(--color-accent) 6%, transparent)" }}
@@ -222,7 +223,6 @@ export default function VerifyCodePage() {
                 style={{ background: "color-mix(in srgb, var(--color-brand-purple) 5%, transparent)" }}
             />
 
-            {/* Back link */}
             <Link
                 href="/sign-up"
                 className="absolute top-6 left-6 flex items-center gap-1.5 text-foreground-disabled hover:text-foreground-muted text-sm transition-colors group"
@@ -231,14 +231,12 @@ export default function VerifyCodePage() {
                 Back to sign up
             </Link>
 
-            {/* Card */}
             <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="show"
                 className="w-full max-w-md"
             >
-                {/* Logo */}
                 <motion.div variants={itemVariants} className="flex items-center justify-center gap-3 mb-10">
                     <Image
                         src="/logo.png"
@@ -250,9 +248,7 @@ export default function VerifyCodePage() {
                     <span className="text-foreground font-bold text-lg tracking-tight">AnvayaLab</span>
                 </motion.div>
 
-                {/* Header */}
                 <motion.div variants={itemVariants} className="text-center mb-10">
-                    {/* Icon badge */}
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-surface border border-border mb-5 relative">
                         <Mail className="h-7 w-7 text-accent" />
                         <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent rounded-full flex items-center justify-center">
@@ -271,7 +267,6 @@ export default function VerifyCodePage() {
                     </p>
                 </motion.div>
 
-                {/* OTP input grid */}
                 <motion.div variants={itemVariants} className="mb-6">
                     <p className="text-xs font-semibold text-foreground-disabled uppercase tracking-widest text-center mb-4">
                         Enter verification code
@@ -311,14 +306,12 @@ export default function VerifyCodePage() {
                             ))}
                     </div>
 
-                    {/* Hint row */}
                     <p className="text-center text-xs text-foreground-disabled mt-4">
                         You can also{" "}
                         <span className="text-foreground-muted">paste</span> the code directly
                     </p>
                 </motion.div>
 
-                {/* Verify button */}
                 <motion.div variants={itemVariants} className="mb-5">
                     <Button
                         onClick={() => handleVerify(code)}
@@ -338,7 +331,6 @@ export default function VerifyCodePage() {
                     </Button>
                 </motion.div>
 
-                {/* Resend */}
                 <motion.div variants={itemVariants} className="text-center">
                     <p className="text-sm text-foreground-disabled mb-1">Didn&apos;t receive the code?</p>
                     <button
@@ -361,7 +353,6 @@ export default function VerifyCodePage() {
                     </button>
                 </motion.div>
 
-                {/* Decorative code lines (brand aesthetic) */}
                 <motion.div
                     variants={itemVariants}
                     className="mt-12 flex flex-col gap-1.5 opacity-20"

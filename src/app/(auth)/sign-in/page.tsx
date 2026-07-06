@@ -103,6 +103,12 @@ export function SignInPageContent() {
             toast.error("Invalid credentials", {
                 description: "Check your email and password then try again.",
             });
+        } else if (error === "AccountExistsWithDifferentProvider") {
+            const provider = searchParams.get("provider") || "another provider";
+            const providerLabel = provider === "email" ? "Password Credentials" : provider.toUpperCase();
+            toast.error("Authentication Failed", {
+                description: `This email is already registered using ${providerLabel}. Please log in using that method.`,
+            });
         } else {
             toast.error("Auth Error", { description: `Something went wrong: ${error}` });
         }
@@ -121,12 +127,19 @@ export function SignInPageContent() {
                     ? "Incorrect email or password."
                     : result.error;
 
-            if (msg.toLowerCase().includes("not verified") || msg.toLowerCase().includes("verify")) {
+            if (msg.toLowerCase().includes("please sign up") || msg.toLowerCase().includes("no account exists")) {
+                toast.error("Sign-in failed", {
+                    description: "No account exists. Please sign up.",
+                });
+            } else if (msg.toLowerCase().includes("not verified") || msg.toLowerCase().includes("verify")) {
                 toast.error("Email not verified", {
                     description: "Please verify your email before signing in.",
                     action: {
                         label: "Resend code",
-                        onClick: () => router.push(`/${encodeURIComponent(data.email)}/verify-code`),
+                        onClick: () => {
+                            localStorage.setItem("verify_email", data.email);
+                            router.push("/verify-code");
+                        },
                     },
                 });
             } else if (msg.toLowerCase().includes("password")) {
@@ -136,6 +149,7 @@ export function SignInPageContent() {
             } else {
                 toast.error("Sign-in failed", { description: msg });
             }
+            form.setValue("password", "");
             return;
         }
 

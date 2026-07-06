@@ -59,7 +59,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
         console.error("Get Requests error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while retrieving requests"
+            error: "An unexpected error occurred while retrieving requests"
         }, { status: 500 });
     }
 }
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
         console.error("Create Request error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while creating request"
+            error: "An unexpected error occurred while creating request"
         }, { status: 500 });
     }
 }
@@ -199,7 +199,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse<ApiResponse>
         console.error("Update Request error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while updating request"
+            error: "An unexpected error occurred while updating request"
         }, { status: 500 });
     }
 }
@@ -263,7 +263,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse<ApiResponse
         console.error("Delete Request error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while deleting request"
+            error: "An unexpected error occurred while deleting request"
         }, { status: 500 });
     }
 }

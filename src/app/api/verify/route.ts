@@ -4,9 +4,22 @@ import { verifyCodeModel } from "@/models/verifyCode.model";
 import { ApiResponse } from "@/types/ApiResponse";
 import { verifySchema } from "@/validations/auth.validation";
 import { NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: Request): Promise<NextResponse<ApiResponse>> {
     try {
+        const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+        const limitResult = rateLimit(ip, 5, 5 * 60 * 1000);
+        if (!limitResult.success) {
+            return NextResponse.json({
+                success: false,
+                error: "Too many verification attempts. Please try again later."
+            }, {
+                status: 429,
+                headers: { "Retry-After": Math.ceil((limitResult.reset - Date.now()) / 1000).toString() }
+            });
+        }
+
         const { code, email } = await req.json();
 
         const validationResult = verifySchema.safeParse({ code });
@@ -31,13 +44,23 @@ export async function POST(req: Request): Promise<NextResponse<ApiResponse>> {
             }, { status: 404 });
         }
 
+        const isAttemptsLeft = isOtpExists.attempts < 5;
         const isOtpValid = isOtpExists.verifyCode === validatedVerifyCode;
         const isCodeNotExpired = new Date(isOtpExists.expiresAt) > new Date();
 
-        if (!isOtpValid) {
+        if(!isAttemptsLeft){
             return NextResponse.json({
                 success: false,
-                error: "Verification code is incorrect"
+                error: "Too many failed attempts. Please Try again after 15 minutes"
+            })
+        }
+
+        if (!isOtpValid) {
+            isOtpExists.attempts += 1;
+            await isOtpExists.save();
+            return NextResponse.json({
+                success: false,
+                error: "Verification code is incorrect",
             }, { status: 400 });
         }
 
@@ -70,7 +93,7 @@ export async function POST(req: Request): Promise<NextResponse<ApiResponse>> {
         console.error("Verification error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "Error verifying user"
+            error: "Error verifying user"
         }, { status: 500 });
     }
 }

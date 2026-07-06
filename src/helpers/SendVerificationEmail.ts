@@ -17,8 +17,9 @@ export default async function SendVerificationEmail(
     verifyCode: string
 ): Promise<ApiResponse> {
     try {
-        // Log the code to console for easy local testing
-        console.log(`\n🔑 [Verification Code for ${email}]: ${verifyCode}\n`);
+        if (process.env.NODE_ENV !== "production") {
+            console.log(`\n[Verification Code for ${email}]: ${verifyCode}\n`);
+        }
 
         // Generate static HTML string directly without react-dom/server
         const html = getVerificationEmailHtml(name, verifyCode);

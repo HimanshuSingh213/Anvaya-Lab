@@ -162,7 +162,7 @@ export async function GET(
         console.error("Error fetching workspace stats:", err);
         return NextResponse.json<ApiResponse>({
             success: false,
-            error: err.message || "Internal server error"
+            error: "Internal server error"
         }, { status: 500 });
     }
 }

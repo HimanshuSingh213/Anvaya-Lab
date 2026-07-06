@@ -110,7 +110,8 @@ export function SignUpPageContent() {
                 toast.success("Verification Code Sent", {
                     description: response.data.message || "Please check your email.",
                 });
-                router.push(`/${encodeURIComponent(data.email)}/verify-code`);
+                localStorage.setItem("verify_email", data.email);
+                router.push("/verify-code");
             }
         } catch (error: any) {
             const errorMessage =

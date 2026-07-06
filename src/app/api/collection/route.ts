@@ -64,7 +64,7 @@ export async function POST(req: Request) {
         console.error("Create Collection error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while creating collection"
+            error: "An unexpected error occurred while creating collection"
         }, { status: 500 });
     }
 }
@@ -112,7 +112,7 @@ export async function GET(req: Request) {
         console.error("Get Collections error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while retrieving collections"
+            error: "An unexpected error occurred while retrieving collections"
         }, { status: 500 });
     }
 }
@@ -172,7 +172,7 @@ export async function DELETE(req: Request) {
         console.error("Delete Collection error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while deleting collection"
+            error: "An unexpected error occurred while deleting collection"
         }, { status: 500 });
     }
 }

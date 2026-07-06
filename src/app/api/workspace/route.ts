@@ -54,7 +54,7 @@ export async function POST(req: Request) {
         console.error("Create Workspace error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while creating workspace"
+            error: "An unexpected error occurred while creating workspace"
         }, { status: 500 });
     }
 }
@@ -83,7 +83,7 @@ export async function GET(req: Request) {
         console.error("Get Workspaces error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while retrieving workspaces"
+            error: "An unexpected error occurred while retrieving workspaces"
         }, { status: 500 });
     }
 }
@@ -143,7 +143,7 @@ export async function DELETE(req: Request) {
         console.error("Workspace delete error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "Server Error"
+            error: "An unexpected error occurred while deleting workspace"
         }, { status: 500 });
     }
 }

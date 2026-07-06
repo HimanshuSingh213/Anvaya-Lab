@@ -43,6 +43,10 @@ export const authOptions: NextAuthOptions = {
                     throw new Error("No account found with this email");
                 }
 
+                if (!user.isEmailVerified) {
+                    throw new Error("No account exists with this email. Please sign up.");
+                }
+
                 if (user.provider !== "email" || !user.passwordHash) {
                     throw new Error(`This email is registered with ${user.provider}. Please log in using that provider.`);
                 }
@@ -88,7 +92,7 @@ export const authOptions: NextAuthOptions = {
             }
             return session;
         },
-        async signIn({user, account, profile}){
+        async signIn({user, account}){
             if(account?.provider === "credentials"){
                 return true;
             }
@@ -99,7 +103,23 @@ export const authOptions: NextAuthOptions = {
                 
                 let dbUser = await UserModel.findOne({email: user.email});
 
-                if(!dbUser){
+                if(dbUser){
+                    if (dbUser.provider !== account?.provider) {
+                        // If the existing credentials/OAuth account is already verified, block sign-in
+                        if (dbUser.isEmailVerified) {
+                            return `/sign-in?error=AccountExistsWithDifferentProvider&provider=${dbUser.provider}`;
+                        }
+                        
+                        // If the existing credentials account was never verified, allow OAuth to take it over
+                        dbUser.provider = account?.provider as "google" | "github" | "email";
+                        dbUser.isEmailVerified = true;
+                        dbUser.passwordHash = null;
+                    }
+                    dbUser.name = user.name || dbUser.name;
+                    dbUser.avatar = user.image || dbUser.avatar;
+                    await dbUser.save();
+                }
+                else{
                     dbUser = await UserModel.create({
                         name: user.name || "User",
                         email: user.email as string,
@@ -108,11 +128,6 @@ export const authOptions: NextAuthOptions = {
                         isEmailVerified: true,
                         passwordHash: null
                     });
-                }
-                else{
-                    dbUser.name = user.name || dbUser.name;
-                    dbUser.avatar = user.image || dbUser.avatar;
-                    await dbUser.save()
                 }
 
                 user.id = dbUser._id.toString();

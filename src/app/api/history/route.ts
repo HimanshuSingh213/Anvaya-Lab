@@ -4,6 +4,7 @@ import { authOptions } from "../auth/[...nextauth]/options";
 import RequestHistoryModel from "@/models/RequestHistory.model";
 import { NextResponse } from "next/server";
 import z from "zod";
+import WorkspaceModel from "@/models/Workspace.model";
 
 const createHistorySchema = z.object({
     workspaceId: z.string().min(1, "Workspace ID is required"),
@@ -41,6 +42,15 @@ export async function POST(req: Request) {
 
         const data = validationResult.data;
 
+        const workspaceId = data.workspaceId;
+        const workspace = await WorkspaceModel.findOne({ _id: workspaceId, ownerId: session.user.id });
+        if (!workspace) {
+            return NextResponse.json({
+                success: false,
+                error: "Workspace not found or unauthorized access"
+            }, { status: 404 });
+        }
+
         const newHistory = await RequestHistoryModel.create({
             ...data,
             userId: session.user.id
@@ -56,7 +66,7 @@ export async function POST(req: Request) {
         console.error("Create Request History error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while logging history"
+            error: "An unexpected error occurred while logging history"
         }, { status: 500 });
     }
 }
@@ -98,7 +108,7 @@ export async function GET(req: Request) {
         console.error("Get Request History error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while retrieving history"
+            error: "An unexpected error occurred while retrieving history"
         }, { status: 500 });
     }
 }
@@ -139,7 +149,7 @@ export async function DELETE(req: Request) {
         console.error("Delete Request History error:", err);
         return NextResponse.json({
             success: false,
-            error: err.message || "An unexpected error occurred while clearing history"
+            error: "An unexpected error occurred while clearing history"
         }, { status: 500 });
     }
 }
