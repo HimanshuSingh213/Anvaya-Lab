@@ -209,7 +209,7 @@ export default function CollectionVault() {
     });
 
     return (
-        <div className="flex-1 flex flex-col min-h-0 bg-background border-t border-border-dark select-none">
+        <div data-tour="collection-vault" className="flex-1 flex flex-col min-h-0 bg-background border-t border-border-dark select-none">
 
             {/* Search and Action Bar */}
 

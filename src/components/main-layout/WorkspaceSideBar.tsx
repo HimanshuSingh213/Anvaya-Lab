@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
-import { Activity, ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
+import { Activity, ChevronDown, Loader2, Plus, Trash2, Database } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -22,6 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createWorkspaceSchema } from "@/validations/workspace.validation";
 import { useApp } from "@/app/Context/UserContext";
+import AddNewEnvironment from "../Environments/AddNewEnvironment";
 
 interface WorkspaceItem {
     _id: string;
@@ -32,11 +33,13 @@ interface WorkspaceItem {
 type WorkspaceFormValues = z.infer<typeof createWorkspaceSchema>;
 
 export default function WorkspaceSideBar() {
-    const { activeWorkspace, setActiveWorkspace, workspaces, setWorkspaces, activeElement } = useApp();
+    const { activeWorkspace, setActiveWorkspace, workspaces, setWorkspaces, activeElement, environments, setEnvironments, activeEnvironmentId, setActiveEnvironmentId } = useApp();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
     const [workspaceToDelete, setWorkspaceToDelete] = useState<{ id: string; name: string } | null>(null);
+    const [isCreatingEnvironment, setIsCreatingEnvironment] = useState(false);
+    const [envToDelete, setEnvToDelete] = useState<{ id: string; name: string } | null>(null);
 
     // React Hook Form for Workspace creation
     const {
@@ -149,10 +152,12 @@ export default function WorkspaceSideBar() {
     };
 
     return (
-        <div className="w-60 h-full flex flex-col bg-panel-charcoal border-r border-border-dark select-none">
+        <div 
+        data-tour="sidebar-vault"
+        className="w-60 h-full flex flex-col bg-panel-charcoal border-r border-border-dark select-none">
 
             {/* Workspace selection dropdown container */}
-            <div className="relative shrink-0">
+            <div data-tour="workspace-selector" className="relative shrink-0">
                 <div
                     onClick={() => !loading && setIsDropdownOpen(!isDropdownOpen)}
                     className="px-4 py-3 bg-panel-charcoal border-b border-border-dark flex flex-col group cursor-pointer hover:bg-panel-hover transition-colors"
@@ -292,6 +297,71 @@ export default function WorkspaceSideBar() {
                 </div>
             )}
 
+            {(activeElement === "environments") && (
+                <div className="flex flex-1 flex-col min-h-0 bg-background">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border-dark">
+                        <span className="text-[10px] text-text-muted font-mono tracking-widest uppercase">Environments</span>
+                        <button
+                            onClick={() => setIsCreatingEnvironment(true)}
+                            className="p-1 rounded hover:bg-panel-hover text-text-muted hover:text-white transition-colors"
+                            title="Create Environment"
+                        >
+                            <Plus className="size-4" />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5 custom-editor-scrollbar">
+                        <AnimatePresence>
+                            {isCreatingEnvironment && (
+                                <AddNewEnvironment
+                                    setIsCreatingEnvironment={setIsCreatingEnvironment}
+                                    onSuccess={(newEnv) => {
+                                        setEnvironments((prev) => [...prev, newEnv]);
+                                        setActiveEnvironmentId(newEnv.id);
+                                    }}
+                                />
+                            )}
+                        </AnimatePresence>
+
+                        {environments.length === 0 && !isCreatingEnvironment ? (
+                            <div className="text-center py-8 text-[11px] text-text-muted">
+                                No environments created yet. Click the + button above to add one.
+                            </div>
+                        ) : (
+                            environments.map((env) => {
+                                const isActive = env.id === activeEnvironmentId;
+                                return (
+                                    <div
+                                        key={env.id}
+                                        onClick={() => setActiveEnvironmentId(env.id)}
+                                        className={`group flex items-center justify-between gap-2 px-3 py-2 text-[13px] rounded-md transition-all duration-200 cursor-pointer ${
+                                            isActive
+                                                ? "bg-[#18181b] text-white font-medium border border-border-dark"
+                                                : "text-text-grey hover:text-text-white hover:bg-[#18181b]/50"
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2 truncate">
+                                            <Database className={`size-3.5 ${isActive ? "text-accent-blue" : "text-text-muted"}`} />
+                                            <span className="truncate">{env.name}</span>
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEnvToDelete({ id: env.id, name: env.name });
+                                            }}
+                                            className="p-0.5 rounded text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Delete Environment"
+                                        >
+                                            <Trash2 className="size-3.5" />
+                                        </button>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            )}
+
 
             {/* Workspace Delete Confirmation Alert Dialog */}
             <AlertDialog
@@ -311,6 +381,43 @@ export default function WorkspaceSideBar() {
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={confirmDeleteWorkspace}
+                            variant="destructive"
+                            className="bg-danger! hover:bg-danger/90! text-text-white"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Environment Delete Confirmation Alert Dialog */}
+            <AlertDialog
+                open={envToDelete !== null}
+                onOpenChange={(open) => !open && setEnvToDelete(null)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Environment</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete the environment <span className="font-semibold text-text-white">"{envToDelete?.name}"</span>? This will permanently delete all variables under it. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setEnvToDelete(null)}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (!envToDelete) return;
+                                const { id, name } = envToDelete;
+                                setEnvironments((prev) => prev.filter((x) => x.id !== id));
+                                if (activeEnvironmentId === id) {
+                                    const remaining = environments.filter((x) => x.id !== id);
+                                    setActiveEnvironmentId(remaining.length > 0 ? remaining[0].id : null);
+                                }
+                                toast.success(`Environment "${name}" deleted`);
+                                setEnvToDelete(null);
+                            }}
                             variant="destructive"
                             className="bg-danger! hover:bg-danger/90! text-text-white"
                         >

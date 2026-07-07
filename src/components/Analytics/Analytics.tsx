@@ -179,422 +179,424 @@ export default function Analytics() {
                     </div>
                 }
             >
-                <div className='p-6 space-y-6 max-w-6xl mx-auto w-full'>
+                <div className='overflow-y-scroll'>
 
-                    {/* Upper Metrics Containers */}
-                    <div className='flex flex-row gap-3 w-full '>
-                        {[
-                            {
-                                name: "Total Handled Requests",
-                                data: new Intl.NumberFormat('en-IN').format(metrics.totalRequests),
-                                subtext: "Sum of totalRequests",
-                                color: "text-text-white"
-                            },
-                            {
-                                name: "Average Response Latency",
-                                data: `${new Intl.NumberFormat('en-IN').format(metrics.averageLatency)} ms`,
-                                subtext: "totalLatency / totalRequests",
-                                color: `${(latencyColorSelector(metrics.averageLatency).class)}`
-                            },
-                            {
-                                name: "API Request Error Rate",
-                                data: `${errorRate}%`,
-                                subtext: "(4xx + 5xx) / totalRequests",
-                                color: "text-method-delete"
-                            },
-                        ].map((el) => (
-                            <div
-                                key={el.name}
-                                className={`p-3 flex flex-col gap-1 w-full h-full rounded-md items-start justify-center bg-panel-hover/60 border border-border-dark`}
-                            >
-                                <p className='text-text-grey text-[10px] font-mono uppercase text-left flex items-center justify-between w-full'>
-                                    {el.name}
-                                    {el.name === "Average Response Latency" && (
-                                        <span className={`text-[11px] font-mono ${latencyColorSelector(metrics.averageLatency).class}`}>
-                                            {latencyColorSelector(metrics.averageLatency).status}
-                                        </span>
-                                    )}
-                                </p>
-                                <h2 className={`text-2xl ${el.color} font-bold`}>{el.data}</h2>
-                                <p className='text-text-muted text-[10px] font-mono'>{el.subtext}</p>
-                            </div>
-                        ))}
-                    </div>
+                    <div className='p-6 space-y-6 max-w-6xl mx-auto w-full'>
 
-                    {/* Charts */}
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                        {/* Left Chart: Request Traffic Volume */}
-                        <div className='p-5 rounded-lg bg-panel-hover/60 border border-border-hover space-y-4 flex flex-col justify-between'>
-                            <header className='flex items-center justify-between'>
-                                <div>
-                                    <p className='uppercase text-[10px] text-text-muted font-mono tracking-wider'>Temporal Distribution</p>
-                                    <h3 className='flex flex-row gap-2 items-center justify-start text-xs mt-0.5 font-bold'>
-                                        <TrendingUp className='text-method-get size-3.5' />
-                                        Request Traffic Volume (7D)
-                                    </h3>
+                        {/* Upper Metrics Containers */}
+                        <div className='flex flex-row gap-3 w-full '>
+                            {[
+                                {
+                                    name: "Total Handled Requests",
+                                    data: new Intl.NumberFormat('en-IN').format(metrics.totalRequests),
+                                    subtext: "Sum of totalRequests",
+                                    color: "text-text-white"
+                                },
+                                {
+                                    name: "Average Response Latency",
+                                    data: `${new Intl.NumberFormat('en-IN').format(metrics.averageLatency)} ms`,
+                                    subtext: "totalLatency / totalRequests",
+                                    color: `${(latencyColorSelector(metrics.averageLatency).class)}`
+                                },
+                                {
+                                    name: "API Request Error Rate",
+                                    data: `${errorRate}%`,
+                                    subtext: "(4xx + 5xx) / totalRequests",
+                                    color: "text-method-delete"
+                                },
+                            ].map((el) => (
+                                <div
+                                    key={el.name}
+                                    className={`p-3 flex flex-col gap-1 w-full h-full rounded-md items-start justify-center bg-panel-hover/60 border border-border-dark`}
+                                >
+                                    <p className='text-text-grey text-[10px] font-mono uppercase text-left flex items-center justify-between w-full'>
+                                        {el.name}
+                                        {el.name === "Average Response Latency" && (
+                                            <span className={`text-[11px] font-mono ${latencyColorSelector(metrics.averageLatency).class}`}>
+                                                {latencyColorSelector(metrics.averageLatency).status}
+                                            </span>
+                                        )}
+                                    </p>
+                                    <h2 className={`text-2xl ${el.color} font-bold`}>{el.data}</h2>
+                                    <p className='text-text-muted text-[10px] font-mono'>{el.subtext}</p>
                                 </div>
-                                <span className='text-[10px] text-text-muted font-mono'>totalRequests</span>
-                            </header>
-                            <div className='w-full h-[180px]'>
-                                {(() => {
-                                    const list = getDailyStatsList();
-                                    const rawMax = Math.max(...list.map(d => d.totalRequests), 0);
-                                    const maxY = Math.max(getNiceMax(rawMax), 4);
-                                    
-                                    const width = 500;
-                                    const height = 180;
-                                    const marginLeft = 45;
-                                    const marginRight = 15;
-                                    const marginTop = 15;
-                                    const marginBottom = 30;
-                                    
-                                    const chartWidth = width - marginLeft - marginRight;
-                                    const chartHeight = height - marginTop - marginBottom;
-                                    
-                                    const points = list.map((d, i) => {
-                                        const x = marginLeft + (i / 6) * chartWidth;
-                                        const y = marginTop + chartHeight - (d.totalRequests / maxY) * chartHeight;
-                                        return { x, y };
-                                    });
-                                    
-                                    const linePath = getBezierPath(points);
-                                    const areaPath = points.length > 0 
-                                        ? `${linePath} L ${points[points.length - 1].x} ${marginTop + chartHeight} L ${points[0].x} ${marginTop + chartHeight} Z`
-                                        : "";
-                                        
-                                    const yLabels = [maxY, Math.round(maxY * 0.75), Math.round(maxY * 0.5), Math.round(maxY * 0.25), 0];
-                                    
-                                    return (
-                                        <svg viewBox={`0 0 ${width} ${height}`} className='w-full h-full text-text-muted select-none'>
-                                            <defs>
-                                                <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="#22c55e" stopOpacity="0.15" />
-                                                    <stop offset="100%" stopColor="#22c55e" stopOpacity="0.0" />
-                                                </linearGradient>
-                                            </defs>
-                                            
-                                            {/* Grid Lines */}
-                                            {yLabels.map((val, idx) => {
-                                                const y = marginTop + (idx / 4) * chartHeight;
-                                                return (
-                                                    <line 
-                                                        key={`h-line-${idx}`}
-                                                        x1={marginLeft}
-                                                        y1={y}
-                                                        x2={width - marginRight}
-                                                        y2={y}
-                                                        stroke="#27272a"
-                                                        strokeDasharray="4 4"
-                                                        strokeWidth="1"
-                                                    />
-                                                );
-                                            })}
-                                            
-                                            {list.map((_, i) => {
-                                                const x = marginLeft + (i / 6) * chartWidth;
-                                                return (
-                                                    <line 
-                                                        key={`v-line-${i}`}
-                                                        x1={x}
-                                                        y1={marginTop}
-                                                        x2={x}
-                                                        y2={marginTop + chartHeight}
-                                                        stroke="#27272a"
-                                                        strokeDasharray="4 4"
-                                                        strokeWidth="1"
-                                                    />
-                                                );
-                                            })}
-                                            
-                                            {/* Y Axis Labels */}
-                                            {yLabels.map((val, idx) => {
-                                                const y = marginTop + (idx / 4) * chartHeight;
-                                                return (
-                                                    <text 
-                                                        key={`y-label-${idx}`}
-                                                        x={marginLeft - 8}
-                                                        y={y + 3.5}
-                                                        fill="#71717a"
-                                                        className="font-mono text-[9px] font-medium"
-                                                        textAnchor="end"
-                                                    >
-                                                        {new Intl.NumberFormat('en-IN').format(val)}
-                                                    </text>
-                                                );
-                                            })}
-                                            
-                                            {/* X Axis Labels */}
-                                            {list.map((d, i) => {
-                                                const x = marginLeft + (i / 6) * chartWidth;
-                                                return (
-                                                    <text 
-                                                        key={`x-label-${i}`}
-                                                        x={x}
-                                                        y={marginTop + chartHeight + 15}
-                                                        fill="#71717a"
-                                                        className="font-mono text-[9px] font-medium"
-                                                        textAnchor="middle"
-                                                    >
-                                                        {formatDateLabel(d.date)}
-                                                    </text>
-                                                );
-                                            })}
-                                            
-                                            {/* Area path */}
-                                            {areaPath && (
-                                                <path 
-                                                    d={areaPath}
-                                                    fill="url(#greenGrad)"
-                                                />
-                                            )}
-                                            
-                                            {/* Line path */}
-                                            {linePath && (
-                                                <path 
-                                                    d={linePath}
-                                                    fill="none"
-                                                    stroke="#22c55e"
-                                                    strokeWidth="1.5"
-                                                />
-                                            )}
-                                        </svg>
-                                    );
-                                })()}
-                            </div>
+                            ))}
                         </div>
 
-                        {/* Right Chart: Mean API Response Speed */}
-                        <div className='p-5 rounded-lg bg-panel-hover/60 border border-border-hover space-y-4 flex flex-col justify-between'>
-                            <header className='flex items-center justify-between'>
-                                <div>
-                                    <p className='uppercase text-[10px] text-text-muted font-mono tracking-wider'>Performance Metric</p>
-                                    <h3 className='flex flex-row gap-2 items-center justify-start text-xs mt-0.5 font-bold'>
-                                        <Cpu className='text-method-post size-3.5' />
-                                        Mean API Response Speed (7D)
-                                    </h3>
+                        {/* Charts */}
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                            {/* Left Chart: Request Traffic Volume */}
+                            <div className='p-5 rounded-lg bg-panel-hover/60 border border-border-hover space-y-4 flex flex-col justify-between'>
+                                <header className='flex items-center justify-between'>
+                                    <div>
+                                        <p className='uppercase text-[10px] text-text-muted font-mono tracking-wider'>Temporal Distribution</p>
+                                        <h3 className='flex flex-row gap-2 items-center justify-start text-xs mt-0.5 font-bold'>
+                                            <TrendingUp className='text-method-get size-3.5' />
+                                            Request Traffic Volume (7D)
+                                        </h3>
+                                    </div>
+                                    <span className='text-[10px] text-text-muted font-mono'>totalRequests</span>
+                                </header>
+                                <div className='w-full h-[180px]'>
+                                    {(() => {
+                                        const list = getDailyStatsList();
+                                        const rawMax = Math.max(...list.map(d => d.totalRequests), 0);
+                                        const maxY = Math.max(getNiceMax(rawMax), 4);
+
+                                        const width = 500;
+                                        const height = 180;
+                                        const marginLeft = 45;
+                                        const marginRight = 15;
+                                        const marginTop = 15;
+                                        const marginBottom = 30;
+
+                                        const chartWidth = width - marginLeft - marginRight;
+                                        const chartHeight = height - marginTop - marginBottom;
+
+                                        const points = list.map((d, i) => {
+                                            const x = marginLeft + (i / 6) * chartWidth;
+                                            const y = marginTop + chartHeight - (d.totalRequests / maxY) * chartHeight;
+                                            return { x, y };
+                                        });
+
+                                        const linePath = getBezierPath(points);
+                                        const areaPath = points.length > 0
+                                            ? `${linePath} L ${points[points.length - 1].x} ${marginTop + chartHeight} L ${points[0].x} ${marginTop + chartHeight} Z`
+                                            : "";
+
+                                        const yLabels = [maxY, Math.round(maxY * 0.75), Math.round(maxY * 0.5), Math.round(maxY * 0.25), 0];
+
+                                        return (
+                                            <svg viewBox={`0 0 ${width} ${height}`} className='w-full h-full text-text-muted select-none'>
+                                                <defs>
+                                                    <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="#22c55e" stopOpacity="0.15" />
+                                                        <stop offset="100%" stopColor="#22c55e" stopOpacity="0.0" />
+                                                    </linearGradient>
+                                                </defs>
+
+                                                {/* Grid Lines */}
+                                                {yLabels.map((val, idx) => {
+                                                    const y = marginTop + (idx / 4) * chartHeight;
+                                                    return (
+                                                        <line
+                                                            key={`h-line-${idx}`}
+                                                            x1={marginLeft}
+                                                            y1={y}
+                                                            x2={width - marginRight}
+                                                            y2={y}
+                                                            stroke="#27272a"
+                                                            strokeDasharray="4 4"
+                                                            strokeWidth="1"
+                                                        />
+                                                    );
+                                                })}
+
+                                                {list.map((_, i) => {
+                                                    const x = marginLeft + (i / 6) * chartWidth;
+                                                    return (
+                                                        <line
+                                                            key={`v-line-${i}`}
+                                                            x1={x}
+                                                            y1={marginTop}
+                                                            x2={x}
+                                                            y2={marginTop + chartHeight}
+                                                            stroke="#27272a"
+                                                            strokeDasharray="4 4"
+                                                            strokeWidth="1"
+                                                        />
+                                                    );
+                                                })}
+
+                                                {/* Y Axis Labels */}
+                                                {yLabels.map((val, idx) => {
+                                                    const y = marginTop + (idx / 4) * chartHeight;
+                                                    return (
+                                                        <text
+                                                            key={`y-label-${idx}`}
+                                                            x={marginLeft - 8}
+                                                            y={y + 3.5}
+                                                            fill="#71717a"
+                                                            className="font-mono text-[9px] font-medium"
+                                                            textAnchor="end"
+                                                        >
+                                                            {new Intl.NumberFormat('en-IN').format(val)}
+                                                        </text>
+                                                    );
+                                                })}
+
+                                                {/* X Axis Labels */}
+                                                {list.map((d, i) => {
+                                                    const x = marginLeft + (i / 6) * chartWidth;
+                                                    return (
+                                                        <text
+                                                            key={`x-label-${i}`}
+                                                            x={x}
+                                                            y={marginTop + chartHeight + 15}
+                                                            fill="#71717a"
+                                                            className="font-mono text-[9px] font-medium"
+                                                            textAnchor="middle"
+                                                        >
+                                                            {formatDateLabel(d.date)}
+                                                        </text>
+                                                    );
+                                                })}
+
+                                                {/* Area path */}
+                                                {areaPath && (
+                                                    <path
+                                                        d={areaPath}
+                                                        fill="url(#greenGrad)"
+                                                    />
+                                                )}
+
+                                                {/* Line path */}
+                                                {linePath && (
+                                                    <path
+                                                        d={linePath}
+                                                        fill="none"
+                                                        stroke="#22c55e"
+                                                        strokeWidth="1.5"
+                                                    />
+                                                )}
+                                            </svg>
+                                        );
+                                    })()}
                                 </div>
-                                <span className='text-[10px] text-text-muted font-mono'>totalLatency / totalRequests</span>
-                            </header>
-                            <div className='w-full h-[180px]'>
-                                {(() => {
-                                    const list = getDailyStatsList();
-                                    const rawMax = Math.max(...list.map(d => d.averageLatency), 0);
-                                    const maxY = Math.max(getNiceMax(rawMax), 40);
-                                    
-                                    const width = 500;
-                                    const height = 180;
-                                    const marginLeft = 45;
-                                    const marginRight = 15;
-                                    const marginTop = 15;
-                                    const marginBottom = 30;
-                                    
-                                    const chartWidth = width - marginLeft - marginRight;
-                                    const chartHeight = height - marginTop - marginBottom;
-                                    
-                                    const points = list.map((d, i) => {
-                                        const x = marginLeft + (i / 6) * chartWidth;
-                                        const y = marginTop + chartHeight - (d.averageLatency / maxY) * chartHeight;
-                                        return { x, y };
-                                    });
-                                    
-                                    const linePath = getBezierPath(points);
-                                    const yLabels = [maxY, Math.round(maxY * 0.75), Math.round(maxY * 0.5), Math.round(maxY * 0.25), 0];
-                                    
-                                    return (
-                                        <svg viewBox={`0 0 ${width} ${height}`} className='w-full h-full text-text-muted select-none'>
-                                            {/* Grid Lines */}
-                                            {yLabels.map((val, idx) => {
-                                                const y = marginTop + (idx / 4) * chartHeight;
-                                                return (
-                                                    <line 
-                                                        key={`h-line-${idx}`}
-                                                        x1={marginLeft}
-                                                        y1={y}
-                                                        x2={width - marginRight}
-                                                        y2={y}
-                                                        stroke="#27272a"
-                                                        strokeDasharray="4 4"
-                                                        strokeWidth="1"
-                                                    />
-                                                );
-                                            })}
-                                            
-                                            {list.map((_, i) => {
-                                                const x = marginLeft + (i / 6) * chartWidth;
-                                                return (
-                                                    <line 
-                                                        key={`v-line-${i}`}
-                                                        x1={x}
-                                                        y1={marginTop}
-                                                        x2={x}
-                                                        y2={marginTop + chartHeight}
-                                                        stroke="#27272a"
-                                                        strokeDasharray="4 4"
-                                                        strokeWidth="1"
-                                                    />
-                                                );
-                                            })}
-                                            
-                                            {/* Y Axis Labels */}
-                                            {yLabels.map((val, idx) => {
-                                                const y = marginTop + (idx / 4) * chartHeight;
-                                                return (
-                                                    <text 
-                                                        key={`y-label-${idx}`}
-                                                        x={marginLeft - 8}
-                                                        y={y + 3.5}
-                                                        fill="#71717a"
-                                                        className="font-mono text-[9px] font-medium"
-                                                        textAnchor="end"
-                                                    >
-                                                        {val}ms
-                                                    </text>
-                                                );
-                                            })}
-                                            
-                                            {/* X Axis Labels */}
-                                            {list.map((d, i) => {
-                                                const x = marginLeft + (i / 6) * chartWidth;
-                                                return (
-                                                    <text 
-                                                        key={`x-label-${i}`}
-                                                        x={x}
-                                                        y={marginTop + chartHeight + 15}
-                                                        fill="#71717a"
-                                                        className="font-mono text-[9px] font-medium"
-                                                        textAnchor="middle"
-                                                    >
-                                                        {formatDateLabel(d.date)}
-                                                    </text>
-                                                );
-                                            })}
-                                            
-                                            {/* Line path */}
-                                            {linePath && (
-                                                <path 
-                                                    d={linePath}
-                                                    fill="none"
-                                                    stroke="#f59e0b"
-                                                    strokeWidth="1.5"
-                                                />
-                                            )}
-                                            
-                                            {/* Dots */}
-                                            {points.map((p, i) => (
-                                                <circle 
-                                                    key={`point-${i}`}
-                                                    cx={p.x}
-                                                    cy={p.y}
-                                                    r="3.5"
-                                                    fill="#f59e0b"
-                                                    stroke="#09090b"
-                                                    strokeWidth="1.5"
-                                                />
-                                            ))}
-                                        </svg>
-                                    );
-                                })()}
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Req Distribution Tables */}
-                    <div className='w-full grid grid-cols-2 gap-6'>
-                        {/* HTTP Method Frequencies */}
-                        <div className='p-5 rounded-lg bg-panel-hover/60 border border-border-hover space-y-4'>
-                            <header>
-                                <p className='uppercase text-[10px] text-text-muted font-mono tracking-wider'>Routing Distribution</p>
-                                <h3 className='flex flex-row gap-2 items-center justify-start text-xs mt-0.5 font-bold'><Layers className='text-method-put size-3.5' />HTTP Method Frequencies</h3>
-                            </header>
-
-                            <div className='space-y-3.5 pt-1'>
-                                {([
-                                    "GET", "POST", "PUT", "DELETE", "PATCH"
-                                ] as const).map((method) => (
-                                    <div
-                                        key={method}
-                                        className='space-y-1'
-                                    >
-                                        <div className='flex justify-between text-xs font-mono text-text-grey'>
-                                            {/* Method Name */}
-                                            <p>{method} calls</p>
-                                            {/* Its percentage */}
-                                            <p className='text-[11px] text-text-muted'>{`${metrics.methods[method]} (${getMethodStatPercentage(method)}%)`}</p>
-                                        </div>
-
-                                        <div className='h-1.5 w-full border border-border-dark bg-background rounded-full overflow-hidden'>
-                                            <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${getMethodStatPercentage(method)}%` }}
-                                                transition={{ duration: 0.5, ease: "easeOut" }}
-                                                className={`bg-method-${method.toLowerCase()} h-full`}
-                                            >
-                                            </motion.div>
-                                        </div>
+                            {/* Right Chart: Mean API Response Speed */}
+                            <div className='p-5 rounded-lg bg-panel-hover/60 border border-border-hover space-y-4 flex flex-col justify-between'>
+                                <header className='flex items-center justify-between'>
+                                    <div>
+                                        <p className='uppercase text-[10px] text-text-muted font-mono tracking-wider'>Performance Metric</p>
+                                        <h3 className='flex flex-row gap-2 items-center justify-start text-xs mt-0.5 font-bold'>
+                                            <Cpu className='text-method-post size-3.5' />
+                                            Mean API Response Speed (7D)
+                                        </h3>
                                     </div>
-                                ))}
+                                    <span className='text-[10px] text-text-muted font-mono'>totalLatency / totalRequests</span>
+                                </header>
+                                <div className='w-full h-[180px]'>
+                                    {(() => {
+                                        const list = getDailyStatsList();
+                                        const rawMax = Math.max(...list.map(d => d.averageLatency), 0);
+                                        const maxY = Math.max(getNiceMax(rawMax), 40);
+
+                                        const width = 500;
+                                        const height = 180;
+                                        const marginLeft = 45;
+                                        const marginRight = 15;
+                                        const marginTop = 15;
+                                        const marginBottom = 30;
+
+                                        const chartWidth = width - marginLeft - marginRight;
+                                        const chartHeight = height - marginTop - marginBottom;
+
+                                        const points = list.map((d, i) => {
+                                            const x = marginLeft + (i / 6) * chartWidth;
+                                            const y = marginTop + chartHeight - (d.averageLatency / maxY) * chartHeight;
+                                            return { x, y };
+                                        });
+
+                                        const linePath = getBezierPath(points);
+                                        const yLabels = [maxY, Math.round(maxY * 0.75), Math.round(maxY * 0.5), Math.round(maxY * 0.25), 0];
+
+                                        return (
+                                            <svg viewBox={`0 0 ${width} ${height}`} className='w-full h-full text-text-muted select-none'>
+                                                {/* Grid Lines */}
+                                                {yLabels.map((val, idx) => {
+                                                    const y = marginTop + (idx / 4) * chartHeight;
+                                                    return (
+                                                        <line
+                                                            key={`h-line-${idx}`}
+                                                            x1={marginLeft}
+                                                            y1={y}
+                                                            x2={width - marginRight}
+                                                            y2={y}
+                                                            stroke="#27272a"
+                                                            strokeDasharray="4 4"
+                                                            strokeWidth="1"
+                                                        />
+                                                    );
+                                                })}
+
+                                                {list.map((_, i) => {
+                                                    const x = marginLeft + (i / 6) * chartWidth;
+                                                    return (
+                                                        <line
+                                                            key={`v-line-${i}`}
+                                                            x1={x}
+                                                            y1={marginTop}
+                                                            x2={x}
+                                                            y2={marginTop + chartHeight}
+                                                            stroke="#27272a"
+                                                            strokeDasharray="4 4"
+                                                            strokeWidth="1"
+                                                        />
+                                                    );
+                                                })}
+
+                                                {/* Y Axis Labels */}
+                                                {yLabels.map((val, idx) => {
+                                                    const y = marginTop + (idx / 4) * chartHeight;
+                                                    return (
+                                                        <text
+                                                            key={`y-label-${idx}`}
+                                                            x={marginLeft - 8}
+                                                            y={y + 3.5}
+                                                            fill="#71717a"
+                                                            className="font-mono text-[9px] font-medium"
+                                                            textAnchor="end"
+                                                        >
+                                                            {val}ms
+                                                        </text>
+                                                    );
+                                                })}
+
+                                                {/* X Axis Labels */}
+                                                {list.map((d, i) => {
+                                                    const x = marginLeft + (i / 6) * chartWidth;
+                                                    return (
+                                                        <text
+                                                            key={`x-label-${i}`}
+                                                            x={x}
+                                                            y={marginTop + chartHeight + 15}
+                                                            fill="#71717a"
+                                                            className="font-mono text-[9px] font-medium"
+                                                            textAnchor="middle"
+                                                        >
+                                                            {formatDateLabel(d.date)}
+                                                        </text>
+                                                    );
+                                                })}
+
+                                                {/* Line path */}
+                                                {linePath && (
+                                                    <path
+                                                        d={linePath}
+                                                        fill="none"
+                                                        stroke="#f59e0b"
+                                                        strokeWidth="1.5"
+                                                    />
+                                                )}
+
+                                                {/* Dots */}
+                                                {points.map((p, i) => (
+                                                    <circle
+                                                        key={`point-${i}`}
+                                                        cx={p.x}
+                                                        cy={p.y}
+                                                        r="3.5"
+                                                        fill="#f59e0b"
+                                                        stroke="#09090b"
+                                                        strokeWidth="1.5"
+                                                    />
+                                                ))}
+                                            </svg>
+                                        );
+                                    })()}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Response status Distribution */}
-                        <div className='p-5 rounded-lg bg-panel-hover/60 border border-border-hover space-y-4'>
-                            <header>
-                                <p className='uppercase text-[10px] text-text-muted font-mono tracking-wider'>Response Analysis</p>
-                                <h3 className='flex flex-row gap-2 items-center justify-start text-xs mt-0.5 font-bold'><CircleAlert className='text-method-patch size-3.5' />Response Status Distribution</h3>
-                            </header>
+                        {/* Req Distribution Tables */}
+                        <div className='w-full grid grid-cols-2 gap-6'>
+                            {/* HTTP Method Frequencies */}
+                            <div className='p-5 rounded-lg bg-panel-hover/60 border border-border-hover space-y-4'>
+                                <header>
+                                    <p className='uppercase text-[10px] text-text-muted font-mono tracking-wider'>Routing Distribution</p>
+                                    <h3 className='flex flex-row gap-2 items-center justify-start text-xs mt-0.5 font-bold'><Layers className='text-method-put size-3.5' />HTTP Method Frequencies</h3>
+                                </header>
 
-                            <div className='space-y-3.5 pt-1'>
-                                {([
-                                     {
-                                         res: "2xx",
-                                         status: "Success",
-                                         bgClass: "bg-success"
-                                     },
-                                     {
-                                         res: "3xx",
-                                         status: "Redirect",
-                                         bgClass: "bg-method-put"
-                                     },
-                                     {
-                                         res: "4xx",
-                                         status: "Client Err",
-                                         bgClass: "bg-method-post"
-                                     },
-                                     {
-                                         res: "5xx",
-                                         status: "Server Err",
-                                         bgClass: "bg-danger"
-                                     }
+                                <div className='space-y-3.5 pt-1'>
+                                    {([
+                                        "GET", "POST", "PUT", "DELETE", "PATCH"
+                                    ] as const).map((method) => (
+                                        <div
+                                            key={method}
+                                            className='space-y-1'
+                                        >
+                                            <div className='flex justify-between text-xs font-mono text-text-grey'>
+                                                {/* Method Name */}
+                                                <p>{method} calls</p>
+                                                {/* Its percentage */}
+                                                <p className='text-[11px] text-text-muted'>{`${metrics.methods[method]} (${getMethodStatPercentage(method)}%)`}</p>
+                                            </div>
 
-                                 ] as const).map((code) => (
-                                     <div
-                                         key={code.res}
-                                         className='space-y-1'
-                                     >
-                                         <div className='flex justify-between text-xs font-mono text-text-grey'>
-                                             {/* Response Status */}
-                                             <p>{code.res} {code.status}</p>
-                                             {/* Its percentage */}
-                                             <p className='text-[11px] text-text-muted text- '>{`${metrics.statusCodes[code.res]} (${getResponseCodePercentage(code.res)}%)`}</p>
-                                         </div>
-
-                                         <div className='h-1.5 w-full border border-border-dark bg-background rounded-full overflow-hidden'>
-                                             <motion.div
-                                                 initial={{ width: 0 }}
-                                                 animate={{ width: `${getResponseCodePercentage(code.res)}%` }}
-                                                 transition={{ duration: 0.5, ease: "easeOut" }}
-                                                 className={`${code.bgClass} h-full`}
-                                             >
-                                             </motion.div>
+                                            <div className='h-1.5 w-full border border-border-dark bg-background rounded-full overflow-hidden'>
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${getMethodStatPercentage(method)}%` }}
+                                                    transition={{ duration: 0.5, ease: "easeOut" }}
+                                                    className={`bg-method-${method.toLowerCase()} h-full`}
+                                                >
+                                                </motion.div>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Response status Distribution */}
+                            <div className='p-5 rounded-lg bg-panel-hover/60 border border-border-hover space-y-4'>
+                                <header>
+                                    <p className='uppercase text-[10px] text-text-muted font-mono tracking-wider'>Response Analysis</p>
+                                    <h3 className='flex flex-row gap-2 items-center justify-start text-xs mt-0.5 font-bold'><CircleAlert className='text-method-patch size-3.5' />Response Status Distribution</h3>
+                                </header>
+
+                                <div className='space-y-3.5 pt-1'>
+                                    {([
+                                        {
+                                            res: "2xx",
+                                            status: "Success",
+                                            bgClass: "bg-success"
+                                        },
+                                        {
+                                            res: "3xx",
+                                            status: "Redirect",
+                                            bgClass: "bg-method-put"
+                                        },
+                                        {
+                                            res: "4xx",
+                                            status: "Client Err",
+                                            bgClass: "bg-method-post"
+                                        },
+                                        {
+                                            res: "5xx",
+                                            status: "Server Err",
+                                            bgClass: "bg-danger"
+                                        }
+
+                                    ] as const).map((code) => (
+                                        <div
+                                            key={code.res}
+                                            className='space-y-1'
+                                        >
+                                            <div className='flex justify-between text-xs font-mono text-text-grey'>
+                                                {/* Response Status */}
+                                                <p>{code.res} {code.status}</p>
+                                                {/* Its percentage */}
+                                                <p className='text-[11px] text-text-muted text- '>{`${metrics.statusCodes[code.res]} (${getResponseCodePercentage(code.res)}%)`}</p>
+                                            </div>
+
+                                            <div className='h-1.5 w-full border border-border-dark bg-background rounded-full overflow-hidden'>
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${getResponseCodePercentage(code.res)}%` }}
+                                                    transition={{ duration: 0.5, ease: "easeOut" }}
+                                                    className={`${code.bgClass} h-full`}
+                                                >
+                                                </motion.div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    </div>
 
+                    </div>
                 </div>
-
 
             </Suspense>
         </div>

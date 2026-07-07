@@ -112,7 +112,7 @@ export default function ResponseViewer({ response, executing }: ResponseViewerPr
     };
 
     return (
-        <div className="border-t border-border-dark pt-4 flex flex-col gap-4 animate-in fade-in duration-300">
+        <div data-tour="response-viewer" className="border-t border-border-dark pt-4 flex flex-col gap-4 animate-in fade-in duration-300">
             {/* Top Bar: Response State and Stats */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

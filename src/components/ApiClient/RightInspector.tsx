@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { ChevronDown, Copy, Check, Clock, Trash2, Loader2 } from 'lucide-react'
+import { ChevronDown, Copy, Check, Clock, Trash2, Loader2, Eye, EyeOff } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '@/app/Context/UserContext'
 import { codeToHtml } from 'shiki'
@@ -70,11 +70,35 @@ const parseUrlParams = (fullUrl: string) => {
 };
 
 export default function RightInspector({ optionId }: inspectorProp) {
-    const { snippets, activeWorkspace, setRequestDraft, setActiveResponse: setResponse, history, loadingHistory, fetchHistory, setHistory } = useApp();
+    const { 
+        snippets, 
+        activeWorkspace, 
+        setRequestDraft, 
+        setActiveResponse: setResponse, 
+        history, 
+        loadingHistory, 
+        fetchHistory, 
+        setHistory,
+        environments,
+        activeEnvironmentId
+    } = useApp();
     const [selectedLang, setSelectedLang] = useState("curl");
     const [isOpen, setIsOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const [revealedSecrets, setRevealedSecrets] = useState<Record<number, boolean>>({});
+
+    const handleToggleRevealSecret = (index: number) => {
+        setRevealedSecrets(prev => ({
+            ...prev,
+            [index]: !prev[index]
+        }));
+    };
+
+    const activeEnv = environments.find(e => e.id === activeEnvironmentId) || null;
+    const activeEnvVariables = activeEnv ? activeEnv.variables : [];
+    const activeEnvName = activeEnv ? activeEnv.name : "None";
 
     const activeLanguage = languages.find(l => l.value === selectedLang) || languages[0];
     const snippetCode = snippets[selectedLang as keyof typeof snippets] || snippets.curl;
@@ -295,15 +319,73 @@ export default function RightInspector({ optionId }: inspectorProp) {
             )}
 
             {optionId === "globals" && (
-                <div className="flex-1 flex flex-col min-h-0 p-3 text-xs text-text-muted">
-                    <div className="bg-panel-charcoal border border-border-dark p-4 rounded-md flex flex-col gap-2">
-                        <span className="text-[10px] font-mono tracking-wider uppercase text-text-grey">Environment Globals</span>
-                        <p className="text-[11px] leading-relaxed">
-                            Define key-value pairs accessible across all collections and requests in this workspace.
-                        </p>
-                        <div className="mt-2 text-[10px] italic border-t border-border-dark pt-2">
-                            No globals configured yet.
-                        </div>
+                <div className="flex-1 flex flex-col min-h-0 bg-background">
+                    {/* Header */}
+                    <header className="bg-background border-b border-border-dark p-3.5 flex flex-row justify-between items-center shrink-0" data-tour="right-inspector-globals-header">
+                        <span className="text-[9px] font-mono text-text-muted uppercase font-bold tracking-wider">Active Variables</span>
+                    </header>
+
+                    {/* Quick Look Container */}
+                    <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 custom-editor-scrollbar">
+                        {!activeEnvironmentId ? (
+                            <div className="text-center py-12 text-[10px] text-text-muted italic bg-panel-charcoal/30 border border-dashed border-border-dark rounded-md p-4">
+                                No environment profile is active. Select an environment from the status bar or the Environments tab to view active variables.
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3.5">
+                                {/* Environment Meta */}
+                                <div className="p-2.5 bg-[#09090b] border border-border-dark rounded flex flex-col gap-1">
+                                    <span className="text-[9.5px] font-mono text-text-muted uppercase tracking-wider font-semibold">Active Profile</span>
+                                    <span className="text-xs font-bold text-text-white">{activeEnvName}</span>
+                                </div>
+
+                                {/* Variable List */}
+                                <div className="flex flex-col gap-2">
+                                    <span className="text-[9.5px] font-mono text-text-muted uppercase tracking-wider font-semibold px-1">Configured Variables</span>
+                                    {activeEnvVariables.length === 0 ? (
+                                        <div className="text-[10px] text-text-muted italic px-1 pt-1">
+                                            No variables defined in this profile.
+                                        </div>
+                                    ) : (
+                                        <div className="border border-border-dark rounded divide-y divide-border-dark overflow-hidden bg-panel-charcoal/20">
+                                            {activeEnvVariables.map((v, idx) => {
+                                                const isRevealed = !!revealedSecrets[idx];
+                                                return (
+                                                    <div key={idx} className={`p-2.5 flex flex-col gap-1.5 transition-all ${!v.isEnabled ? "opacity-40" : ""}`}>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="font-mono text-[10px] font-bold text-text-white truncate pr-2">
+                                                                {v.key || "—"}
+                                                            </span>
+                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                {v.isSecret && (
+                                                                    <button
+                                                                        onClick={() => handleToggleRevealSecret(idx)}
+                                                                        className="p-0.5 rounded text-text-muted hover:text-text-white transition-colors cursor-pointer"
+                                                                        title={isRevealed ? "Hide Secret" : "Show Secret"}
+                                                                    >
+                                                                        {isRevealed ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+                                                                    </button>
+                                                                )}
+                                                                <span className={`text-[8px] font-mono px-1 py-0.2 rounded border font-semibold ${
+                                                                    v.isEnabled 
+                                                                        ? "text-success border-success/20 bg-success/5" 
+                                                                        : "text-text-muted border-border-dark bg-panel-charcoal"
+                                                                }`}>
+                                                                    {v.isEnabled ? "Active" : "Disabled"}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <span className="font-mono text-[10.5px] text-text-grey truncate block select-text">
+                                                            {v.isSecret && !isRevealed ? "••••••••" : v.value || "—"}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

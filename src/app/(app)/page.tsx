@@ -15,8 +15,6 @@ export default async function Home() {
     const session = await getServerSession(authOptions);
     const user = session?.user ?? null;
 
-    // Highlight all 5 snippets once, at request time, on the server.
-    // Shiki never ships to the client bundle this way.
     const entries = await Promise.all(
         LANGS.map(async (lang) => {
             const { code, shikiLang } = CODE_SNIPPETS[lang];

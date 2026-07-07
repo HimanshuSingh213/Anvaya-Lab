@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
     Edit2, Plus, Trash2, Globe, ChevronDown,
     Play, Loader2, Check, X, Lock, Key,
-    Clock,
+    Clock, AlertTriangle,
 } from "lucide-react";
 import { useApp } from "@/app/Context/UserContext";
 import { useSearchParams } from "next/navigation";
@@ -144,7 +144,10 @@ export default function RequestCreator() {
         requestName: name,
         setRequestName: setName,
         requestDescription: description,
-        setRequestDescription: setDescription
+        setRequestDescription: setDescription,
+        resolveEnv,
+        requestAgent,
+        setRequestAgent
     } = useApp();
     const searchParams = useSearchParams();
     const reqId = searchParams.get("reqId");
@@ -156,6 +159,10 @@ export default function RequestCreator() {
     const [authDropdownOpen, setAuthDropdownOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<"params" | "headers" | "auth" | "body">("params");
     const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved" | "error">("saved");
+
+    // Request Execution Agent States
+    const [agentDropdownOpen, setAgentDropdownOpen] = useState(false);
+    const [showCorsModal, setShowCorsModal] = useState(false);
 
     // Response Execution States
     const [executing, setExecuting] = useState(false);
@@ -357,16 +364,42 @@ export default function RequestCreator() {
     const saveRequestToDb = async (updatedName?: string, updatedDescription?: string) => {
         if (!reqId) return;
 
+        // Resolve environment variables before validating and saving
+        let resolvedUrl = resolveEnv(requestDraft.url || "");
+        if (resolvedUrl && !/^https?:\/\//i.test(resolvedUrl)) {
+            resolvedUrl = "http://" + resolvedUrl;
+        }
+
+        const resolvedQueryParams = (requestDraft.queryParams || []).map(p => ({
+            ...p,
+            value: resolveEnv(p.value || "")
+        }));
+        const resolvedHeaders = (requestDraft.headers || []).map(h => ({
+            ...h,
+            value: resolveEnv(h.value || "")
+        }));
+        const resolvedBody = {
+            ...requestDraft.body,
+            content: resolveEnv(requestDraft.body?.content || "")
+        };
+        const resolvedAuthentication = requestDraft.authentication ? {
+            ...requestDraft.authentication,
+            value: resolveEnv(requestDraft.authentication.value || ""),
+            key: resolveEnv(requestDraft.authentication.key || ""),
+            username: resolveEnv(requestDraft.authentication.username || ""),
+            password: resolveEnv(requestDraft.authentication.password || "")
+        } : undefined;
+
         const patchPayload = {
             collectionId: colId || undefined,
             name: updatedName !== undefined ? updatedName : name,
             description: updatedDescription !== undefined ? updatedDescription : description,
-            url: requestDraft.url,
+            url: resolvedUrl,
             method: requestDraft.method,
-            queryParams: requestDraft.queryParams,
-            headers: requestDraft.headers,
-            body: requestDraft.body,
-            authentication: requestDraft.authentication
+            queryParams: resolvedQueryParams,
+            headers: resolvedHeaders,
+            body: resolvedBody,
+            authentication: resolvedAuthentication
         };
 
         // Validate the payload using the unified Zod validation schema
@@ -403,44 +436,164 @@ export default function RequestCreator() {
     const handleSendRequest = async () => {
         setExecuting(true);
         setResponse(null);
-        try {
-            const res = await axios.post("/api/requests/run", {
-                workspaceId: activeWorkspace?._id || "",
-                url: requestDraft.url,
-                method: requestDraft.method,
-                queryParams: requestDraft.queryParams,
-                headers: requestDraft.headers,
-                body: requestDraft.body,
-                authentication: requestDraft.authentication
-            });
-            if (res.data.success && res.data.data) {
-                const runnerData = res.data.data;
+
+        // Resolving environment variables before sending
+        let resolvedUrl = resolveEnv(requestDraft.url || "");
+        if (resolvedUrl && !/^https?:\/\//i.test(resolvedUrl)) {
+            resolvedUrl = "http://" + resolvedUrl;
+        }
+        const resolvedQueryParams = (requestDraft.queryParams || []).map(p => ({
+            ...p,
+            value: resolveEnv(p.value || "")
+        }));
+        const resolvedHeaders = (requestDraft.headers || []).map(h => ({
+            ...h,
+            value: resolveEnv(h.value || "")
+        }));
+        const resolvedBody = {
+            ...requestDraft.body,
+            content: resolveEnv(requestDraft.body?.content || "")
+        };
+        const resolvedAuthentication = requestDraft.authentication ? {
+            ...requestDraft.authentication,
+            value: resolveEnv(requestDraft.authentication.value || ""),
+            key: resolveEnv(requestDraft.authentication.key || ""),
+            username: resolveEnv(requestDraft.authentication.username || ""),
+            password: resolveEnv(requestDraft.authentication.password || "")
+        } : undefined;
+
+        if (requestAgent === "proxy") {
+            try {
+                const res = await axios.post("/api/requests/run", {
+                    workspaceId: activeWorkspace?._id || "",
+                    url: resolvedUrl,
+                    method: requestDraft.method,
+                    queryParams: resolvedQueryParams,
+                    headers: resolvedHeaders,
+                    body: resolvedBody,
+                    authentication: resolvedAuthentication
+                });
+                if (res.data.success && res.data.data) {
+                    const runnerData = res.data.data;
+                    setResponse(runnerData);
+
+                    await axios.post("/api/history", {
+                        workspaceId: activeWorkspace?._id || "",
+                        url: buildFullUrl(resolvedUrl, resolvedQueryParams || []),
+                        method: requestDraft.method,
+                        headers: JSON.stringify(resolvedHeaders || []),
+                        body: typeof resolvedBody.content === "string" ? resolvedBody.content : JSON.stringify(resolvedBody || {}),
+                        status: runnerData.status,
+                        responseTime: runnerData.time,
+                        responseSize: runnerData.size || 0,
+                        response: typeof runnerData.body === 'string' ? runnerData.body : JSON.stringify(runnerData.body || "")
+                    });
+
+                    fetchHistory();
+                } else {
+                    toast.error("Failed to retrieve request response.");
+                }
+            } catch (err: any) {
+                const errMsg = err.response?.data?.error || err.message || "";
+                if (errMsg.includes("private") || errMsg.includes("local network") || errMsg.includes("restricted")) {
+                    toast.error("Private Network Request Blocked", {
+                        description: "The Server Proxy cannot access local/private resources. To test localhost or local endpoints, click the arrow on the 'Send' button and toggle the agent to 'Browser Direct'.",
+                        duration: 8000
+                    });
+                } else {
+                    toast.error(errMsg || "Failed to execute request.");
+                }
+            } finally {
+                setExecuting(false);
+            }
+        } else {
+            const startTime = performance.now();
+            try {
+                const finalUrl = buildFullUrl(resolvedUrl, resolvedQueryParams || []);
+                
+                const headersMap: Record<string, string> = {};
+                resolvedHeaders?.forEach(h => {
+                    if (h.isEnabled && h.key) headersMap[h.key] = h.value;
+                });
+
+                if (resolvedAuthentication?.type === "bearer" && resolvedAuthentication.value) {
+                    headersMap["Authorization"] = `Bearer ${resolvedAuthentication.value}`;
+                } else if (resolvedAuthentication?.type === "basic") {
+                    const creds = btoa(`${resolvedAuthentication.username || ""}:${resolvedAuthentication.password || ""}`);
+                    headersMap["Authorization"] = `Basic ${creds}`;
+                } else if (resolvedAuthentication?.type === "apikey" && resolvedAuthentication.key && resolvedAuthentication.value) {
+                    headersMap[resolvedAuthentication.key] = resolvedAuthentication.value;
+                }
+
+                let requestBody: any = undefined;
+                if (resolvedBody && resolvedBody.type !== "none") {
+                    if (resolvedBody.type === "json") {
+                        headersMap["Content-Type"] = "application/json";
+                        requestBody = resolvedBody.content || "";
+                    } else if (resolvedBody.type === "x-www-form-urlencoded") {
+                        headersMap["Content-Type"] = "application/x-www-form-urlencoded";
+                        requestBody = resolvedBody.content || "";
+                    } else {
+                        headersMap["Content-Type"] = "text/plain";
+                        requestBody = resolvedBody.content || "";
+                    }
+                }
+
+                const fetchRes = await fetch(finalUrl, {
+                    method: requestDraft.method,
+                    headers: headersMap,
+                    body: requestDraft.method !== "GET" && requestDraft.method !== "DELETE" ? requestBody : undefined,
+                    mode: "cors"
+                });
+
+                const responseText = await fetchRes.text();
+                const endTime = performance.now();
+                const duration = Math.round(endTime - startTime);
+
+                let parsedBody = responseText;
+                try {
+                    parsedBody = JSON.parse(responseText);
+                } catch {}
+
+                const headersObj: Record<string, string> = {};
+                fetchRes.headers.forEach((val, key) => {
+                    headersObj[key] = val;
+                });
+
+                const runnerData = {
+                    status: fetchRes.status,
+                    statusText: fetchRes.statusText || (fetchRes.status === 200 ? "OK" : ""),
+                    time: duration,
+                    size: responseText.length,
+                    headers: headersObj,
+                    body: parsedBody
+                };
 
                 setResponse(runnerData);
 
                 await axios.post("/api/history", {
                     workspaceId: activeWorkspace?._id || "",
-                    url: buildFullUrl(requestDraft.url, requestDraft.queryParams || []),
+                    url: finalUrl,
                     method: requestDraft.method,
-                    headers: JSON.stringify(requestDraft.headers || []),
-                    body: typeof requestDraft.body === "string" ? requestDraft.body : JSON.stringify(requestDraft.body || {}),
+                    headers: JSON.stringify(resolvedHeaders || []),
+                    body: typeof resolvedBody.content === "string" ? resolvedBody.content : JSON.stringify(resolvedBody || {}),
                     status: runnerData.status,
                     responseTime: runnerData.time,
                     responseSize: runnerData.size || 0,
-                    response: typeof runnerData.body === 'string' ? runnerData.body : JSON.stringify(runnerData.body || "")
+                    response: responseText
                 });
 
-                // await axios.
                 fetchHistory();
-            } else {
-                toast.error("Failed to retrieve request response.");
+            } catch (err: any) {
+                const isLocal = requestDraft.url.includes("localhost") || requestDraft.url.includes("127.0.0.1");
+                if (isLocal) {
+                    setShowCorsModal(true);
+                } else {
+                    toast.error("Direct browser execution failed. This usually happens if the server hasn't enabled CORS or is unreachable.");
+                }
+            } finally {
+                setExecuting(false);
             }
-
-
-        } catch (err: any) {
-            toast.error(err.response?.data?.error || err.message || "Failed to execute request.");
-        } finally {
-            setExecuting(false);
         }
     };
 
@@ -449,7 +602,7 @@ export default function RequestCreator() {
     return (
         <div className="flex-1 flex flex-col h-full bg-bg-black text-text-white p-4 overflow-hidden select-none">
             {/* Header: Request name, description & save status */}
-            <div className="flex flex-col border-b border-border-dark pb-2 mb-3">
+            <div className="flex flex-col border-b border-border-dark pb-2 mb-3" data-tour="request-metadata">
                 <div className="flex items-center gap-3">
                     <InlineEdit
                         value={name}
@@ -540,7 +693,9 @@ export default function RequestCreator() {
                 </div>
 
                 {/* URL input field with Globe icon inside */}
-                <div className="flex-1 flex items-center bg-panel-charcoal border border-border-dark focus-within:border-border-hover rounded-md px-2.5 h-8 transition-all">
+                <div 
+                data-tour="url-bar"
+                className="flex-1 flex items-center bg-panel-charcoal border border-border-dark focus-within:border-border-hover rounded-md px-2.5 h-8 transition-all">
                     <Globe className="size-3.5 text-text-muted mr-2 shrink-0" />
                     <input
                         type="text"
@@ -551,8 +706,10 @@ export default function RequestCreator() {
                     />
                 </div>
 
-                {/* Split Send button */}
-                <div className="flex items-center shrink-0">
+                {/* Split Send button with Agent options */}
+                <div 
+                data-tour="send-button"
+                className="flex items-center shrink-0 relative">
                     <button
                         onClick={handleSendRequest}
                         disabled={executing}
@@ -566,16 +723,50 @@ export default function RequestCreator() {
                         <span>{executing ? "Sending" : "Send"}</span>
                     </button>
                     <button
+                        onClick={() => setAgentDropdownOpen(!agentDropdownOpen)}
                         className="bg-text-white hover:bg-text-white/90 text-bg-black rounded-r-md px-2 h-8 flex items-center justify-center cursor-pointer transition-colors"
-                        title="Options"
+                        title="Execution Agent"
                     >
-                        <ChevronDown className="size-3" />
+                        <ChevronDown className="size-3 text-bg-black" />
                     </button>
+
+                    {/* Agent Dropdown Menu */}
+                    {agentDropdownOpen && (
+                        <div className="absolute right-0 top-9 w-40 bg-panel-charcoal border border-border-dark rounded-md shadow-lg py-1 z-50">
+                            <div className="px-2 py-1 text-[9px] uppercase tracking-wider text-text-disabled font-semibold">
+                                Request Agent
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setRequestAgent("proxy");
+                                    setAgentDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between ${
+                                    requestAgent === "proxy" ? "text-text-white bg-panel-hover" : "text-text-grey hover:text-text-white hover:bg-panel-hover/50"
+                                }`}
+                            >
+                                <span>Server Proxy</span>
+                                {requestAgent === "proxy" && <Check className="size-3 text-text-white" />}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setRequestAgent("direct");
+                                    setAgentDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between ${
+                                    requestAgent === "direct" ? "text-text-white bg-panel-hover" : "text-text-grey hover:text-text-white hover:bg-panel-hover/50"
+                                }`}
+                            >
+                                <span>Browser Direct</span>
+                                {requestAgent === "direct" && <Check className="size-3 text-text-white" />}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Tab selection selectors */}
-            <div className="flex border-b border-border-dark mb-3 shrink-0">
+            <div className="flex border-b border-border-dark mb-3 shrink-0" data-tour="request-option-tabs">
                 {[
                     { id: "params", label: "Query Params" },
                     { id: "headers", label: "Headers" },
@@ -586,6 +777,7 @@ export default function RequestCreator() {
                     return (
                         <button
                             key={t.id}
+                            data-tour-request-tab={t.id}
                             onClick={() => setActiveTab(t.id as any)}
                             className={`px-3 py-1.5 text-[10px] font-medium border-b-2 transition-all cursor-pointer ${isActive
                                 ? "border-text-white text-text-white font-semibold"
@@ -692,7 +884,7 @@ export default function RequestCreator() {
                     </div>
                 )}
 
-                {/* 2. Headers Tab View */}
+                {/* Headers Tab View */}
                 {activeTab === "headers" && (
                     <div className="space-y-3">
                         <div className="overflow-x-auto">
@@ -784,7 +976,7 @@ export default function RequestCreator() {
                     </div>
                 )}
 
-                {/* 3. Authorization Tab View */}
+                {/* Authorization Tab View */}
                 {activeTab === "auth" && (
                     <div className="space-y-3 max-w-md">
                         <div className="flex flex-col gap-1.5">
@@ -886,7 +1078,7 @@ export default function RequestCreator() {
                     </div>
                 )}
 
-                {/* 4. Body (JSON) Tab View */}
+                {/* Body (JSON) Tab View */}
                 {activeTab === "body" && (
                     <div className="flex flex-col h-full gap-1.5">
                         {/* Sub-header labels with Body Type Selector */}
@@ -960,6 +1152,38 @@ export default function RequestCreator() {
 
             {/* Response Panel */}
             <ResponseViewer response={response} executing={executing} />
+
+            {/* CORS Warning Modal */}
+            {showCorsModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-panel-charcoal border border-border-dark rounded-xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+                        <header className="flex items-center gap-2 text-method-delete font-bold">
+                            <AlertTriangle className="size-4 shrink-0 text-method-delete" />
+                            <h3 className="text-xs text-text-white uppercase tracking-wider">CORS Blocked Request</h3>
+                        </header>
+                        <p className="text-[10px] text-text-muted leading-relaxed">
+                            Your browser blocked direct request to <code className="bg-surface-secondary px-1 py-0.5 rounded text-accent-blue font-mono text-[9px]">{requestDraft.url}</code>. Localhost servers require CORS headers to be allowed by browsers.
+                        </p>
+                        <div className="space-y-1.5 bg-bg-black/50 p-2.5 rounded border border-border-dark text-[9px] font-mono leading-relaxed">
+                            <p className="text-text-white font-semibold">Enable CORS in your local backend:</p>
+                            <div className="text-text-muted space-y-1 pt-1">
+                                <p><span className="text-accent-blue font-semibold">Express/Node:</span> app.use(require(&apos;cors&apos;)())</p>
+                                <p><span className="text-accent-blue font-semibold">FastAPI/Python:</span> Add CORSMiddleware</p>
+                                <p><span className="text-accent-blue font-semibold">Flask/Python:</span> CORS(app)</p>
+                                <p><span className="text-accent-blue font-semibold">Spring Boot:</span> @CrossOrigin</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2 justify-end pt-1">
+                            <button
+                                onClick={() => setShowCorsModal(false)}
+                                className="px-2.5 py-1.5 bg-panel-hover hover:bg-panel-hover/80 text-text-white rounded text-[9px] font-bold cursor-pointer transition-colors"
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

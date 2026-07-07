@@ -1,8 +1,22 @@
 "use client";
 
 import { Header, Authentication } from "@/models/Request.model";
-import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from "react";
 import axios from "axios";
+import { useDebounce } from "@uidotdev/usehooks";
+
+export interface EnvironmentVariable {
+    key: string;
+    value: string;
+    isEnabled: boolean;
+    isSecret?: boolean;
+}
+
+export interface EnvironmentProfile {
+    id: string;
+    name: string;
+    variables: EnvironmentVariable[];
+}
 
 export interface HistoryPayload {
     _id: string;
@@ -64,6 +78,13 @@ interface UserContextType {
     setRequestName: React.Dispatch<React.SetStateAction<string>>;
     requestDescription: string;
     setRequestDescription: React.Dispatch<React.SetStateAction<string>>;
+    environments: EnvironmentProfile[];
+    setEnvironments: React.Dispatch<React.SetStateAction<EnvironmentProfile[]>>;
+    activeEnvironmentId: string | null;
+    setActiveEnvironmentId: (id: string | null) => void;
+    resolveEnv: (text: string) => string;
+    requestAgent: "proxy" | "direct";
+    setRequestAgent: React.Dispatch<React.SetStateAction<"proxy" | "direct">>;
 }
 
 const defaultDraft: RequestDraft = {
@@ -82,35 +103,54 @@ const defaultDraft: RequestDraft = {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-const generateSnippets = (draft: RequestDraft) => {
-    const url = draft.url || "https://api.github.com/users/HimanshuSingh213";
+// Helper to replace double curly braces with environment variable values
+const replaceVariables = (text: string, variables: EnvironmentVariable[]): string => {
+    if (!text || typeof text !== "string") return text;
+    let resolved = text;
+    variables.forEach(v => {
+        if (v.isEnabled && v.key) {
+            // Escape special regex characters in key just in case
+            const escapedKey = v.key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const regex = new RegExp(`{{\\s*${escapedKey}\\s*}}`, 'g');
+            resolved = resolved.replace(regex, v.value);
+        }
+    });
+    return resolved;
+};
+
+const generateSnippets = (draft: RequestDraft, activeEnvVariables: EnvironmentVariable[] = []) => {
+    const url = replaceVariables(draft.url || "https://api.github.com/users/HimanshuSingh213", activeEnvVariables);
     const method = draft.method || "GET";
 
-    // Parse query params if any are enabled
+    // Parsing query params if any are enabled
     let fullUrl = url;
     const enabledParams = (draft.queryParams || []).filter(p => p.isEnabled !== false && p.key);
     if (enabledParams.length > 0) {
         try {
-            // Check if URL is fully qualified before passing to URL constructor
+            // Checking if URL is fully qualified before passing to URL constructor
             let hasProtocol = url.startsWith("http://") || url.startsWith("https://");
             const tempUrl = hasProtocol ? url : `http://${url}`;
             const urlObj = new URL(tempUrl);
             enabledParams.forEach(p => {
-                urlObj.searchParams.append(p.key, p.value);
+                const resolvedVal = replaceVariables(p.value, activeEnvVariables);
+                urlObj.searchParams.append(p.key, resolvedVal);
             });
             fullUrl = hasProtocol ? urlObj.toString() : urlObj.toString().replace("http://", "");
         } catch {
-            const queryStr = enabledParams.map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`).join("&");
+            const queryStr = enabledParams.map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(replaceVariables(p.value, activeEnvVariables))}`).join("&");
             fullUrl = url + (url.includes("?") ? "&" : "?") + queryStr;
         }
     }
 
     // Headers
-    const headersList = (draft.headers || []).filter(h => h.isEnabled !== false && h.key);
+    const headersList = (draft.headers || []).filter(h => h.isEnabled !== false && h.key).map(h => ({
+        key: h.key,
+        value: replaceVariables(h.value, activeEnvVariables)
+    }));
 
     // Body content
-    const hasBody = ["POST", "PUT", "PATCH", "DELETE"].includes(method) && draft.body && draft.body.type !== "none" && draft.body.content;
-    const bodyContent = hasBody ? draft.body.content : "";
+    const rawBody = draft.body && draft.body.type !== "none" && draft.body.content;
+    const bodyContent = rawBody ? replaceVariables(draft.body.content, activeEnvVariables) : "";
 
     // cURL
     let curl = `curl --request ${method} \\\n  --url '${fullUrl}'`;
@@ -317,6 +357,64 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [requestName, setRequestName] = useState("GET Request");
     const [requestDescription, setRequestDescription] = useState("No description provided. Click to add one.");
 
+    const [environments, setEnvironments] = useState<EnvironmentProfile[]>([]);
+    const [activeEnvironmentId, setActiveEnvironmentId] = useState<string | null>(null);
+    const [requestAgent, setRequestAgent] = useState<"proxy" | "direct">("proxy");
+
+    // Load environments from local storage whenever activeWorkspace changes
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const wsId = activeWorkspace?._id || "global";
+            const savedEnvs = localStorage.getItem(`anvaya_environments_${wsId}`);
+            const savedActiveId = localStorage.getItem(`anvaya_active_env_${wsId}`);
+            if (savedEnvs) {
+                try {
+                    setEnvironments(JSON.parse(savedEnvs));
+                } catch (e) {
+                    console.error("Failed to parse saved environments:", e);
+                }
+            } else {
+                setEnvironments([]);
+            }
+            
+            if (savedActiveId) {
+                setActiveEnvironmentId(savedActiveId);
+            } else {
+                setActiveEnvironmentId(null);
+            }
+        }
+    }, [activeWorkspace?._id]);
+
+    // Save environments to local storage whenever they change
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const wsId = activeWorkspace?._id || "global";
+            localStorage.setItem(`anvaya_environments_${wsId}`, JSON.stringify(environments));
+        }
+    }, [environments, activeWorkspace?._id]);
+
+    // Save active environment ID to local storage when it changes
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const wsId = activeWorkspace?._id || "global";
+            if (activeEnvironmentId) {
+                localStorage.setItem(`anvaya_active_env_${wsId}`, activeEnvironmentId);
+            } else {
+                localStorage.removeItem(`anvaya_active_env_${wsId}`);
+            }
+        }
+    }, [activeEnvironmentId, activeWorkspace?._id]);
+
+    const activeVariables = useMemo(() => {
+        if (!activeEnvironmentId) return [];
+        const activeEnv = environments.find(e => e.id === activeEnvironmentId);
+        return activeEnv ? activeEnv.variables : [];
+    }, [environments, activeEnvironmentId]);
+
+    const resolveEnv = useCallback((text: string): string => {
+        return replaceVariables(text, activeVariables);
+    }, [activeVariables]);
+
     const fetchHistory = useCallback(async (workspaceIdOverride?: string) => {
         const wsId = workspaceIdOverride || activeWorkspace?._id;
         if (!wsId) return;
@@ -334,8 +432,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, [activeWorkspace]);
 
     const snippets = useMemo(() => {
-        return generateSnippets(requestDraft);
-    }, [requestDraft]);
+        return generateSnippets(requestDraft, activeVariables);
+    }, [requestDraft, activeVariables]);
 
     const value = {
         activeElement,
@@ -358,7 +456,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         requestName,
         setRequestName,
         requestDescription,
-        setRequestDescription
+        setRequestDescription,
+        environments,
+        setEnvironments,
+        activeEnvironmentId,
+        setActiveEnvironmentId,
+        resolveEnv,
+        requestAgent,
+        setRequestAgent
     };
 
     return (

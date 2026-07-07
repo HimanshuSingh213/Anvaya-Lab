@@ -8,7 +8,7 @@ import RequestCreator from './RequestCreator'
 
 const options = [
     { name: "Snippets", icon: Code, id: "snippets" },
-    { name: "Globals", icon: Database, id: "globals" },
+    { name: "Variables", icon: Database, id: "globals" },
     { name: "History", icon: History, id: "history" }
 ]
 
@@ -45,12 +45,13 @@ export default function ApiClient() {
             </div>
 
             {/* Right sidebar */}
-            <div className='w-75 bg-background border-l border-border-dark h-full flex flex-col shrink-0'>
+            <div data-tour="right-inspector" className='w-75 bg-background border-l border-border-dark h-full flex flex-col shrink-0'>
                 {/* selectors */}
-                <div className='flex flex-row justify-between items-center bg-background border-b border-b-border-dark w-full h-10'>
+                <div data-tour="right-inspector-tabs" className='flex flex-row justify-between items-center bg-background border-b border-b-border-dark w-full h-10'>
                     {options.map((opt) => (
                         <button
                             key={opt.id}
+                            data-tour-tab={opt.id}
                             onClick={() => setActiveOption(opt.id)}
                             className={`flex flex-row items-center justify-center gap-2 transition duration-150 ease-in-out w-full h-10 font-medium text-xs py-2  ${opt.id === activeOption ? "border-b-2 border-b-text-white text-text-white bg-panel-active " : "text-text-muted bg-background hover:bg-panel-hover border-b-2 border-b-transparent"}`}
                         >

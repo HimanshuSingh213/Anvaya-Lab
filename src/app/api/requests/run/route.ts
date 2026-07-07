@@ -99,8 +99,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
             }
         }
 
+        let targetUrl = url;
+        if (!/^https?:\/\//i.test(targetUrl)) {
+            targetUrl = "http://" + targetUrl;
+        }
+
         // completing the url
-        const urlObj = new URL(url);
+        const urlObj = new URL(targetUrl);
         queryParams.forEach((param) => {
             if (param.isEnabled && param.key) {
                 urlObj.searchParams.append(param.key, param.value || "");

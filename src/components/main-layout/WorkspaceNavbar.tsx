@@ -6,9 +6,13 @@ import { LogOut, Settings, User, ChevronDown, Github } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { LiquidTooltip } from "../rareui/LiquidTooltip/LiquidTooltip";
+import { useApp } from "@/app/Context/UserContext";
+import { Database, Shield } from "lucide-react";
 
 export default function WorkspaceNavbar() {
     const { data: session, status } = useSession();
+    const { environments, activeEnvironmentId, requestAgent } = useApp();
+    const activeEnv = environments.find(e => e.id === activeEnvironmentId) || null;
     const [isOpen, setIsOpen] = useState(false);
     const [cachedUser, setCachedUser] = useState<any>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -76,6 +80,24 @@ export default function WorkspaceNavbar() {
                     />
                 </div>
                 <span className="bg-panel-hover px-1 py-0.5 text-text-grey text-[10px] font-mono rounded-sm">v0.1.0-Beta</span>
+            </div>
+ 
+            {/* Center Settings Status */}
+            <div className="hidden md:flex items-center gap-3 bg-[#09090b] border border-border-dark px-3.5 py-1 rounded-full text-[10px] font-mono select-none" data-tour="navbar-status">
+                <div className="flex items-center gap-1.5 border-r border-border-dark pr-3">
+                    <Database className={`size-3 ${activeEnv ? "text-success" : "text-text-muted"}`} />
+                    <span className="text-text-muted">ENV:</span>
+                    <span className={`font-semibold ${activeEnv ? "text-success" : "text-text-muted"}`}>
+                        {activeEnv ? activeEnv.name : "None"}
+                    </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <Shield className={`size-3 ${requestAgent === "proxy" ? "text-success" : "text-warning"}`} />
+                    <span className="text-text-muted">AGENT:</span>
+                    <span className={`font-semibold uppercase ${requestAgent === "proxy" ? "text-success" : "text-warning"}`}>
+                        {requestAgent === "proxy" ? "Proxy Mode" : "Browser Direct"}
+                    </span>
+                </div>
             </div>
 
             {/* Actions & User section */}
