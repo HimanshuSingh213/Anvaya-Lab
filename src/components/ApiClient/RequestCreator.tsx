@@ -462,6 +462,13 @@ export default function RequestCreator() {
             password: resolveEnv(requestDraft.authentication.password || "")
         } : undefined;
 
+        const wsId = activeWorkspace?._id || "global";
+        const settings = {
+            timeout: typeof window !== "undefined" ? Number(localStorage.getItem(`anvaya_settings_timeout_${wsId}`) || 8000) : 8000,
+            maxSize: typeof window !== "undefined" ? Number(localStorage.getItem(`anvaya_settings_max_size_${wsId}`) || 10) : 10,
+            followRedirects: typeof window !== "undefined" ? localStorage.getItem(`anvaya_settings_follow_redirects_${wsId}`) !== "false" : true
+        };
+
         if (requestAgent === "proxy") {
             try {
                 const res = await axios.post("/api/requests/run", {
@@ -471,7 +478,8 @@ export default function RequestCreator() {
                     queryParams: resolvedQueryParams,
                     headers: resolvedHeaders,
                     body: resolvedBody,
-                    authentication: resolvedAuthentication
+                    authentication: resolvedAuthentication,
+                    settings: settings
                 });
                 if (res.data.success && res.data.data) {
                     const runnerData = res.data.data;
@@ -539,14 +547,27 @@ export default function RequestCreator() {
                     }
                 }
 
+                const controller = new AbortController();
+                const timeoutTimer = setTimeout(() => controller.abort(), settings.timeout);
+
                 const fetchRes = await fetch(finalUrl, {
                     method: requestDraft.method,
                     headers: headersMap,
                     body: requestDraft.method !== "GET" && requestDraft.method !== "DELETE" ? requestBody : undefined,
-                    mode: "cors"
+                    mode: "cors",
+                    redirect: settings.followRedirects ? 'follow' : 'manual',
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutTimer);
+
                 const responseText = await fetchRes.text();
+
+                // Enforce max response size limit on direct agent requests
+                if (responseText.length > settings.maxSize * 1024 * 1024) {
+                    throw new Error(`Response size limit exceeded: response was larger than the configured ${settings.maxSize}MB limit.`);
+                }
+
                 const endTime = performance.now();
                 const duration = Math.round(endTime - startTime);
 

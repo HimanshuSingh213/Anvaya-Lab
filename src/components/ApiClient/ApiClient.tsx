@@ -8,7 +8,7 @@ import RequestCreator from './RequestCreator'
 
 const options = [
     { name: "Snippets", icon: Code, id: "snippets" },
-    { name: "Variables", icon: Database, id: "globals" },
+    { name: "ENVs", icon: Database, id: "globals" },
     { name: "History", icon: History, id: "history" }
 ]
 

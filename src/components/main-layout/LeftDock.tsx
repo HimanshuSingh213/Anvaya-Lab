@@ -43,8 +43,9 @@ export default function LeftDock() {
             {/* Lower Deck */}
             <div className='flex items-center justify-center w-full'>
                 <div
+                onClick={() => setActiveElement("settings")}
                     title="Settings"
-                    className='flex items-center justify-center w-8 h-8 rounded-lg text-text-muted hover:text-text-white hover:bg-panel-hover transition-colors duration-150 cursor-pointer'
+                    className={`flex items-center justify-center w-8 h-8 rounded-lg text-text-muted  transition-colors duration-150 cursor-pointer ${activeElement === "settings"? "bg-panel-hover text-text-white" : "hover:bg-panel-hover hover:text-text-white"}`}
                 >
                     <Settings className='w-4 h-4' />
                 </div>

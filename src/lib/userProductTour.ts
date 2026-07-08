@@ -154,7 +154,7 @@ export function userProductTour(activeRequest: any) {
                     {
                         element: '[data-tour-tab="globals"]',
                         popover: {
-                            title: "Active Variables Inspector",
+                            title: "Active ENVs Inspector",
                             description: "Quickly view and inspect all configured variables for the selected environment profile without changing pages. You can reveal secrets by clicking the eye icon.",
                             side: "left",
                             align: "center"

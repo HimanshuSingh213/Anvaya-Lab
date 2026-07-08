@@ -6,6 +6,7 @@ import ApiClient from '@/components/ApiClient/ApiClient'
 import EnvironmentsManager from '@/components/Environments/EnvironmentsManager';
 import { Suspense } from 'react';
 import { userProductTour } from '@/lib/userProductTour';
+import SettingsManager from '@/components/settings/SettingsManager';
 
 function Page() {
   const { activeElement, activeRequest } = useApp();
@@ -45,6 +46,8 @@ function Page() {
           <EnvironmentsManager />
         </Suspense>
       )}
+
+      {activeElement === "settings" && <SettingsManager />}
     </div>
   )
 }

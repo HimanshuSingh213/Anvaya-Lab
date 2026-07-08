@@ -8,5 +8,10 @@ export const runRequestSchema = z.object({
     queryParams: z.array(QueryParamSchema).default([]),
     headers: z.array(HeaderSchema).default([]),
     authentication: AuthenticationSchema.default({ type: "none" }),
-    body: RequestBodySchema.default({ type: "none", content: "" })
+    body: RequestBodySchema.default({ type: "none", content: "" }),
+    settings: z.object({
+        timeout: z.number().default(8000),
+        maxSize: z.number().default(10),
+        followRedirects: z.boolean().default(true)
+    }).optional()
 });

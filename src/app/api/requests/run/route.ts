@@ -81,7 +81,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
             }, { status: 400 });
         }
 
-        const { workspaceId, url, method, queryParams, headers, authentication, body } = validationResult.data;
+        const { workspaceId, url, method, queryParams, headers, authentication, body, settings } = validationResult.data;
 
         if (workspaceId) {
             if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
@@ -193,7 +193,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
                 method,
                 headers: requestHeaders,
                 data: requestData,
-                timeout: 15000,
+                timeout: settings?.timeout ?? 8000,
+                maxRedirects: settings?.followRedirects === false ? 0 : 5,
                 validateStatus: () => true,
                 responseType: "text",
             });
@@ -222,6 +223,22 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
             (acc, [key, val]) => acc + key.length + String(val).length, 0
         );
         const payloadSize = Buffer.byteLength(responseBodyStr, "utf-8") + headerSize;
+
+        // Enforce max response size limit
+        const limitSizeMB = settings?.maxSize ?? 10;
+        if (payloadSize > limitSizeMB * 1024 * 1024) {
+            return NextResponse.json({
+                success: true,
+                data: {
+                    status: 413,
+                    statusText: "Payload Too Large",
+                    time: duration,
+                    size: payloadSize,
+                    headers: response.headers,
+                    body: `Response size limit exceeded: response was larger than the configured ${limitSizeMB}MB limit.`
+                }
+            }, { status: 200 });
+        }
 
         // Auto-parsing JSON response if possible
         let finalBody = responseBodyStr;

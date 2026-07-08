@@ -322,7 +322,7 @@ export default function RightInspector({ optionId }: inspectorProp) {
                 <div className="flex-1 flex flex-col min-h-0 bg-background">
                     {/* Header */}
                     <header className="bg-background border-b border-border-dark p-3.5 flex flex-row justify-between items-center shrink-0" data-tour="right-inspector-globals-header">
-                        <span className="text-[9px] font-mono text-text-muted uppercase font-bold tracking-wider">Active Variables</span>
+                        <span className="text-[9px] font-mono text-text-muted uppercase font-bold tracking-wider">Active ENVs</span>
                     </header>
 
                     {/* Quick Look Container */}

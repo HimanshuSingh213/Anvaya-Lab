@@ -311,8 +311,24 @@
   border-color: #030303 !important;
 }
 
-.driver-active-element {
+/* Force highest z-index on Driver.js elements to prevent override by headers/navbars */
+.driver-overlay, .driver-stage, .driver-popover {
+  z-index: 99999999 !important;
+}
+
+/* Apply premium solid outline to the overlay stage so it never gets clipped by parent overflow */
+.driver-stage, .driver-active-element {
   outline: 1.5px solid #fafafa !important;
   outline-offset: 4px !important;
   border-radius: 4px !important;
+}
+
+/* Hide number input spinners globally */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
 }
