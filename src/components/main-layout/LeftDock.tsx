@@ -1,6 +1,6 @@
 "use client"
 import { useApp } from '@/app/Context/UserContext';
-import { LucideIcon, LucideFolder, LucideTerminal, Settings, Activity, Database } from 'lucide-react'
+import { LucideIcon, LucideTerminal, Settings, Activity, Database } from 'lucide-react'
 
 interface SidebarElement {
     name: string;
@@ -10,7 +10,6 @@ interface SidebarElement {
 
 const sideBarElementsUpperdeck: SidebarElement[] = [
     { name: "API Client", icon: LucideTerminal, component: "apiClient" },
-    { name: "Collections", icon: LucideFolder, component: "collections" },
     { name: "Analytics", icon: Activity, component: "analytics" },
     { name: "Environments", icon: Database, component: "environments" }
 ];

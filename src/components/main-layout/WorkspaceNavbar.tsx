@@ -11,7 +11,7 @@ import { Database, Shield } from "lucide-react";
 
 export default function WorkspaceNavbar() {
     const { data: session, status } = useSession();
-    const { environments, activeEnvironmentId, requestAgent } = useApp();
+    const { environments, activeEnvironmentId, requestAgent, setActiveElement } = useApp();
     const activeEnv = environments.find(e => e.id === activeEnvironmentId) || null;
     const [isOpen, setIsOpen] = useState(false);
     const [cachedUser, setCachedUser] = useState<any>(null);
@@ -172,15 +172,11 @@ export default function WorkspaceNavbar() {
                                 </div>
 
                                 <button
-                                    onClick={() => setIsOpen(false)}
-                                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-text-grey hover:text-text-white hover:bg-panel-hover rounded-lg transition-colors"
-                                >
-                                    <User className="size-3.5" />
-                                    Profile
-                                </button>
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-text-grey hover:text-text-white hover:bg-panel-hover rounded-lg transition-colors"
+                                    onClick={() => {
+                                        setIsOpen(false);
+                                        setActiveElement("settings");
+                                    }}
+                                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-text-grey hover:text-text-white hover:bg-panel-hover rounded-lg transition-colors cursor-pointer"
                                 >
                                     <Settings className="size-3.5" />
                                     Settings

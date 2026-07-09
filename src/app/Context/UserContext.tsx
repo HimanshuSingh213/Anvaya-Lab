@@ -3,7 +3,6 @@
 import { Header, Authentication } from "@/models/Request.model";
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from "react";
 import axios from "axios";
-import { useDebounce } from "@uidotdev/usehooks";
 
 export interface EnvironmentVariable {
     key: string;
@@ -435,7 +434,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return generateSnippets(requestDraft, activeVariables);
     }, [requestDraft, activeVariables]);
 
-    const value = {
+    const value = useMemo(() => ({
         activeElement,
         setActiveElement,
         activeRequest,
@@ -464,7 +463,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         resolveEnv,
         requestAgent,
         setRequestAgent
-    };
+    }), [
+        activeElement,
+        activeRequest,
+        requestDraft,
+        snippets,
+        activeWorkspace,
+        history,
+        loadingHistory,
+        activeResponse,
+        workspaces,
+        requestName,
+        requestDescription,
+        environments,
+        activeEnvironmentId,
+        requestAgent
+    ]);
 
     return (
         <UserContext.Provider value={value}>

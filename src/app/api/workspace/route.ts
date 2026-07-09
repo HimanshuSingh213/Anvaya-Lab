@@ -5,6 +5,8 @@ import { createWorkspaceSchema } from "@/validations/workspace.validation";
 import WorkspaceModel from "@/models/Workspace.model";
 import CollectionModel from "@/models/Collection.model";
 import RequestModel from "@/models/Request.model";
+import RequestHistoryModel from "@/models/RequestHistory.model";
+import WorkspaceStatsModel from "@/models/WorkspaceStats.model";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -130,6 +132,10 @@ export async function DELETE(req: Request) {
 
         // Deleting all Collections inside this workspace
         await CollectionModel.deleteMany({ workspaceId: id });
+
+        // Deleting all history logs and stats associated with this workspace
+        await RequestHistoryModel.deleteMany({ workspaceId: id });
+        await WorkspaceStatsModel.deleteMany({ workspaceId: id });
 
         // Deleting the workspace itself
         await WorkspaceModel.deleteOne({ _id: id });

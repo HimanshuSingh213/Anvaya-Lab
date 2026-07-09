@@ -35,6 +35,17 @@ This document catalogs the current set of API routes available in **AnvayaLab** 
 * **Providers:** Google, GitHub, and email Credentials.
 * **Callback Behavior:** OAuth sign-ins automatically synchronize with the MongoDB `users` collection in the `signIn` callback, setting `isEmailVerified: true` implicitly.
 
+### `DELETE /api/user`
+* **Purpose:** Permanently deletes the currently authenticated user's account and performs a complete database cascade deletion of all user data.
+* **Cascade Actions:**
+  * Purges all Requests associated with the user's collections.
+  * Purges all Collections inside the user's workspaces.
+  * Purges all request histories (`RequestHistoryModel`).
+  * Purges all performance stats (`WorkspaceStatsModel`).
+  * Purges all Workspaces owned by the user.
+  * Purges all verification codes associated with the user's email.
+  * Deletes the User record itself.
+
 ---
 
 ## 📁 Workspace Routes
@@ -139,10 +150,15 @@ This document catalogs the current set of API routes available in **AnvayaLab** 
     "queryParams": [],
     "headers": [],
     "authentication": { "type": "none" },
-    "body": { "type": "none", "content": "" }
+    "body": { "type": "none", "content": "" },
+    "settings": {
+      "timeout": 8000,
+      "maxSize": 10,
+      "followRedirects": true
+    }
   }
   ```
-* **Behavior:** Appends query parameters to the URL string, attaches active authentication values, and issues the dispatch request via Server-Side Axios. Returns status codes, execution duration (time), headers, and result payload object.
+* **Behavior:** Appends query parameters to the URL string, attaches active authentication values, and issues the dispatch request via Server-Side Axios using custom request settings (timeout, size limits, redirect following). Returns status codes, execution duration (time), headers, and result payload object.
 
 ---
 
@@ -177,6 +193,15 @@ This document catalogs the current set of API routes available in **AnvayaLab** 
 
 ---
 
+## 📊 Workspace Analytics Routes
+
+### `GET /api/workspace/[workspaceId]/stats`
+* **Purpose:** Retrieves aggregated metrics and performance history for a specific workspace.
+* **Path Parameters:** `workspaceId` (Required)
+* **Behavior:** Checks active session and fetches analytics including total request runs, average latency, response method distribution, HTTP status code groups, and daily execution frequencies for charting.
+
+---
+
 ## 📦 Dependencies
 
 Here is a catalog of the primary dependencies configured in the **AnvayaLab** structure, along with their installation commands:
@@ -203,15 +228,15 @@ npm i react-hook-form @hookform/resolvers zod
 ```
 
 ### 🎨 Styling, UI, & Animation
-* **CSS, Primitives & Icons:** `tailwindcss` (v4.0.0), `@tailwindcss/postcss`, `framer-motion` (v12.42.2), `tw-animate-css` (v1.4.0), `sonner` (v2.0.7), `lucide-react` (v0.469.0)
-* **Utilities:** `@radix-ui/react-label`, `@radix-ui/react-slot`, `@uidotdev/usehooks`, `class-variance-authority`, `clsx`, `tailwind-merge`
+* **CSS, Primitives & Icons:** `tailwindcss` (v4.0.0), `@tailwindcss/postcss`, `framer-motion` (v12.42.2), `tw-animate-css` (v1.4.0), `sonner` (v2.0.7), `lucide-react` (v0.469.0), `driver.js` (v1.6.0), `recharts` (v3.9.2), `next-themes` (v0.4.6)
+* **Utilities:** `radix-ui` (v1.6.1), `shadcn` (v4.12.0), `@radix-ui/react-label`, `@radix-ui/react-slot`, `@uidotdev/usehooks`, `class-variance-authority`, `clsx`, `tailwind-merge`
 ```bash
-npm i framer-motion tw-animate-css sonner lucide-react @uidotdev/usehooks
+npm i framer-motion tw-animate-css sonner lucide-react @uidotdev/usehooks driver.js recharts next-themes radix-ui shadcn
 npm i @radix-ui/react-label @radix-ui/react-slot class-variance-authority clsx tailwind-merge
 ```
 
 ### 📧 Email Client
-* **SMTP client & Templates:** `nodemailer` (v7.0.13), `react-email` (v6.6.5)
+* **SMTP client & Templates:** `nodemailer` (v9.0.3), `react-email` (v6.6.5)
 ```bash
 npm i nodemailer react-email
 npm i -D @types/nodemailer

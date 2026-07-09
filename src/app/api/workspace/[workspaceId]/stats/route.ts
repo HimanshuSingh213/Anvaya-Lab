@@ -1,6 +1,7 @@
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import dbConnect from "@/lib/dbConnect";
 import WorkspaceStatsModel from "@/models/WorkspaceStats.model";
+import WorkspaceModel from "@/models/Workspace.model";
 import { ApiResponse } from "@/types/ApiResponse";
 import mongoose from "mongoose";
 import { getServerSession } from "next-auth";
@@ -28,6 +29,15 @@ export async function GET(
                 success: false,
                 error: "Valid Workspace ID is required"
             }, { status: 400 });
+        }
+
+        // Verify workspace exists and belongs to the owner first
+        const workspace = await WorkspaceModel.findOne({ _id: workspaceId, ownerId: session.user.id });
+        if (!workspace) {
+            return NextResponse.json<ApiResponse>({
+                success: false,
+                error: "Workspace not found or unauthorized access"
+            }, { status: 404 });
         }
 
         const aggregatedStats = await WorkspaceStatsModel.aggregate([

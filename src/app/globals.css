@@ -179,7 +179,7 @@
 }
 
 :root {
-  /* Override shadcn defaults with our dark theme values */
+  /* Override shadcn defaults */
   --background: #000000;
   --foreground: #fafafa;
   --card: #0a0a0c;
@@ -243,7 +243,7 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* Driver.js Overrides for premium dark/charcoal themes */
+/* Driver.js Overrides */
 .driver-popover {
   background-color: #030303 !important;
   color: #fafafa !important;
@@ -311,12 +311,17 @@
   border-color: #030303 !important;
 }
 
-/* Force highest z-index on Driver.js elements to prevent override by headers/navbars */
-.driver-overlay, .driver-stage, .driver-popover {
-  z-index: 99999999 !important;
+.driver-overlay {
+  z-index: 999998 !important;
+}
+.driver-stage, .driver-active-element {
+  z-index: 999999 !important;
+}
+.driver-popover {
+  z-index: 1000000 !important;
 }
 
-/* Apply premium solid outline to the overlay stage so it never gets clipped by parent overflow */
+/* A premium solid outline to the overlay stage */
 .driver-stage, .driver-active-element {
   outline: 1.5px solid #fafafa !important;
   outline-offset: 4px !important;
@@ -328,7 +333,4 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
-}
-input[type="number"] {
-  -moz-appearance: textfield;
 }

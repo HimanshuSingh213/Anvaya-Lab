@@ -23,6 +23,7 @@ import { z } from "zod";
 import { createWorkspaceSchema } from "@/validations/workspace.validation";
 import { useApp } from "@/app/Context/UserContext";
 import AddNewEnvironment from "../Environments/AddNewEnvironment";
+import { useRouter } from 'next/navigation';
 
 interface WorkspaceItem {
     _id: string;
@@ -34,6 +35,7 @@ type WorkspaceFormValues = z.infer<typeof createWorkspaceSchema>;
 
 export default function WorkspaceSideBar() {
     const { activeWorkspace, setActiveWorkspace, workspaces, setWorkspaces, activeElement, environments, setEnvironments, activeEnvironmentId, setActiveEnvironmentId } = useApp();
+    const router = useRouter();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
@@ -140,6 +142,7 @@ export default function WorkspaceSideBar() {
                     } else {
                         await createDefaultWorkspace();
                     }
+                    router.replace("/my-workspace");
                 }
             }
         } catch (err: any) {
@@ -211,6 +214,7 @@ export default function WorkspaceSideBar() {
                                                 onClick={() => {
                                                     setActiveWorkspace(w);
                                                     setIsDropdownOpen(false);
+                                                    router.replace("/my-workspace");
                                                 }}
                                                 className={`group flex items-center justify-between gap-2 px-3 py-2 text-[13px] rounded-md transition-all duration-200 cursor-pointer ${isActive
                                                     ? "bg-[#18181b] text-white font-medium"

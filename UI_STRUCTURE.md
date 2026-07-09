@@ -41,6 +41,8 @@ All client interface elements reside under `src/components` and `src/app`:
     *   [WorkspaceNavbar.tsx](file:///d:/Code%20Playground/anvaya-lab/src/components/main-layout/WorkspaceNavbar.tsx): Top header navigation panel.
     *   [LeftDock.tsx](file:///d:/Code%20Playground/anvaya-lab/src/components/main-layout/LeftDock.tsx): Vertical navigation bar switcher.
     *   [WorkspaceSideBar.tsx](file:///d:/Code%20Playground/anvaya-lab/src/components/main-layout/WorkspaceSideBar.tsx): Hierarchical directory tree of collections and requests.
+*   **`src/components/settings/`**: Settings management.
+    *   [SettingsManager.tsx](file:///d:/Code%20Playground/anvaya-lab/src/components/settings/SettingsManager.tsx): Workspace configurations and credentials action panel.
 *   **`src/components/ApiClient/`**: Sandbox execution panel.
     *   [ApiClient.tsx](file:///d:/Code%20Playground/anvaya-lab/src/components/ApiClient/ApiClient.tsx): State routing coordinator (Empty landing vs. Sandbox creator).
     *   [RequestCreator.tsx](file:///d:/Code%20Playground/anvaya-lab/src/components/ApiClient/RequestCreator.tsx): Request configuration tabbed sandbox panel.
@@ -58,7 +60,7 @@ All client interface elements reside under `src/components` and `src/app`:
     *   **User Action Trigger**: Spring-animated user menu dropdown showing active profile avatar, settings, and sign-out command.
 
 ### B. Navigation & Collection Sidebar (`LeftDock` & `WorkspaceSideBar`)
-*   **`LeftDock`**: Leftmost navigation ribbon (`w-14` px) showing utility toggles (Collections, History, settings).
+*   **`LeftDock`**: Leftmost navigation ribbon (`w-12` px) showing workspace section switches (API Client, Analytics, Environments) and settings.
 *   **`WorkspaceSideBar`**: Sidebar list (`w-60` px) managing:
     *   **Create Trigger Buttons**: Add new folders, collection nodes, or individual HTTP requests.
     *   **Collections List**: Interactive accordion files displaying request trees that route navigation parameters to the URL query string (`?reqId={id}`).
@@ -97,5 +99,5 @@ Located at the base of the sandbox panel, enforcing a rigid `h-[200px]` footprin
 Side panel (`w-75` px) containing utility tabs:
 
 *   **Code Snippets**: Renders code output templates (cURL, Fetch, Axios, Python, Go) highlighted in real-time by Shiki.
-*   **Globals**: Interface mapping environmental globals.
+*   **ENVs**: Quick look utility mapping active environment variables with secret mask toggles.
 *   **History**: Log listing past request executions.
