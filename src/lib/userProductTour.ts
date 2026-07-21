@@ -6,6 +6,11 @@ import { useEffect } from "react";
 
 export function userProductTour(activeRequest: any) {
     useEffect(() => {
+        // Prevent running the product tour on non-desktop viewports
+        if (typeof window !== "undefined" && window.innerWidth < 1024) {
+            return;
+        }
+
         const hasSeenTour1 = localStorage.getItem("has_seen_tour_part1");
         const hasSeenTour2 = localStorage.getItem("has_seen_tour_part2");
 
