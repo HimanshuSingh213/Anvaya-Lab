@@ -21,7 +21,7 @@ interface ResponseViewerProps {
 }
 
 export default function ResponseViewer({ response, executing }: ResponseViewerProps) {
-    const [activeTab, setActiveTab] = useState<"pretty" | "raw" | "headers">("pretty");
+    const [activeTab, setActiveTab] = useState<"pretty" | "raw" | "preview" | "headers">("pretty");
     const [responseCopied, setResponseCopied] = useState(false);
 
     const [prettyHtml, setPrettyHtml] = useState("");
@@ -38,6 +38,25 @@ export default function ResponseViewer({ response, executing }: ResponseViewerPr
             ? JSON.stringify(response.body) 
             : String(response.body)
     ) : "";
+
+    // Content-Type detection helpers
+    const getHeaderValue = (name: string) => {
+        if (!response?.headers) return "";
+        const found = Object.entries(response.headers).find(([k]) => k.toLowerCase() === name.toLowerCase());
+        if (!found) return "";
+        return Array.isArray(found[1]) ? found[1][0] : String(found[1]);
+    };
+
+    const contentType = getHeaderValue("content-type").toLowerCase();
+    const isImage = contentType.includes("image/") || (typeof response?.body === "string" && response.body.startsWith("data:image/"));
+    const isHtml = contentType.includes("text/html") || contentType.includes("application/xhtml+xml");
+
+    // Auto-switch to preview mode if response is an image or HTML webpage
+    useEffect(() => {
+        if (response && (isImage || isHtml)) {
+            setActiveTab("preview");
+        }
+    }, [response]);
 
     useEffect(() => {
         if (!response) {
@@ -99,11 +118,23 @@ export default function ResponseViewer({ response, executing }: ResponseViewerPr
     const handleDownloadResponse = () => {
         if (!response || !response.body) return;
         try {
+            if (typeof response.body === "string" && response.body.startsWith("data:image/")) {
+                const link = document.createElement("a");
+                link.href = response.body;
+                const ext = contentType.includes("png") ? "png" : contentType.includes("jpeg") || contentType.includes("jpg") ? "jpg" : contentType.includes("webp") ? "webp" : "png";
+                link.download = `response-image-${Date.now()}.${ext}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast.success("Image payload downloaded successfully");
+                return;
+            }
+
             const content = typeof response.body === "object"
                 ? JSON.stringify(response.body, null, 2)
                 : String(response.body);
             
-            downloadJson(content, `response-${Date.now()}.json`)
+            downloadJson(content, `response-${Date.now()}.json`);
 
             toast.success("Response payload downloaded successfully");
         } catch {
@@ -182,6 +213,7 @@ export default function ResponseViewer({ response, executing }: ResponseViewerPr
                 {([
                     { id: "pretty", label: "Pretty" },
                     { id: "raw", label: "Raw" },
+                    { id: "preview", label: "Preview" },
                     { id: "headers", label: "Headers" }
                 ] as const).map(tab => {
                     const isActive = activeTab === tab.id;
@@ -203,11 +235,11 @@ export default function ResponseViewer({ response, executing }: ResponseViewerPr
 
             {/* Tab Contents View */}
             {executing ? (
-                <div className="flex items-center justify-center h-[200px] text-text-muted">
+                <div className="flex items-center justify-center h-50 text-text-muted">
                     <Loader2 className="size-5 animate-spin" />
                 </div>
             ) : (
-                <div className="h-[200px] min-h-[200px] max-h-[200px] overflow-hidden flex flex-col">
+                <div className="h-50 min-h-50 max-h-50 overflow-hidden flex flex-col">
                     
                     {/* Pretty tab view */}
                     {activeTab === "pretty" && (
@@ -216,7 +248,7 @@ export default function ResponseViewer({ response, executing }: ResponseViewerPr
                                 prettyHtml ? (
                                     <div dangerouslySetInnerHTML={{ __html: prettyHtml }} className="shiki-container text-[11px]" />
                                 ) : (
-                                    <pre className="whitespace-pre-wrap break-all font-mono text-[11px] leading-[18px]">
+                                    <pre className="whitespace-pre-wrap break-all font-mono text-[11px] leading-4.5">
                                         {prettyString}
                                     </pre>
                                 )
@@ -235,13 +267,67 @@ export default function ResponseViewer({ response, executing }: ResponseViewerPr
                                 rawHtml ? (
                                     <div dangerouslySetInnerHTML={{ __html: rawHtml }} className="shiki-container text-[11px]" />
                                 ) : (
-                                    <pre className="whitespace-pre-wrap break-all font-mono text-[11px] leading-[18px]">
+                                    <pre className="whitespace-pre-wrap break-all font-mono text-[11px] leading-4.5">
                                         {rawString}
                                     </pre>
                                 )
                             ) : (
                                 <div className="text-text-muted font-mono text-[11px] italic">
                                     {"// No response body."}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Preview tab view */}
+                    {activeTab === "preview" && (
+                        <div className="bg-bg-black h-full overflow-hidden flex flex-col">
+                            {response ? (
+                                isImage ? (
+                                    <div className="bg-[#050506] h-full w-full flex flex-col items-center justify-center p-3 relative select-none">
+                                        <div className="relative p-2 rounded border border-border-dark bg-black/60 shadow-xl flex items-center justify-center max-h-35 max-w-full overflow-hidden">
+                                            <div className="absolute inset-0 bg-[radial-gradient(#27272a_1px,transparent_1px)] bg-size-[12px_12px] opacity-40" />
+                                            <img
+                                                src={typeof response.body === "string" && response.body.startsWith("data:image/") ? response.body : prettyString}
+                                                alt="API Response Preview"
+                                                className="relative max-h-30 max-w-full object-contain rounded"
+                                            />
+                                        </div>
+                                        <div className="mt-2 flex items-center gap-3 text-[10px] font-mono text-text-muted">
+                                            <span className="bg-panel-charcoal px-2 py-0.5 rounded border border-border-dark text-text-white font-semibold">
+                                                {contentType || "image/png"}
+                                            </span>
+                                            <span>•</span>
+                                            <span>
+                                                Size: <strong className="text-text-white">{response.size < 1024 ? `${response.size} B` : `${(response.size / 1024).toFixed(2)} KB`}</strong>
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : isHtml ? (
+                                    <div className="bg-white h-full w-full rounded overflow-hidden">
+                                        <iframe
+                                            srcDoc={prettyString}
+                                            title="HTML Response Preview"
+                                            className="w-full h-full border-0 bg-white"
+                                            sandbox="allow-same-origin allow-scripts"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="bg-bg-black h-full overflow-y-scroll custom-editor-scrollbar p-3 text-text-white font-mono text-[11px]">
+                                        <div className="mb-2 flex items-center justify-between border-b border-border-dark/60 pb-1.5 text-[10px] text-text-muted">
+                                            <span>FORMATTED DOCUMENT PREVIEW</span>
+                                            <span className="bg-panel-charcoal px-2 py-0.5 rounded border border-border-dark text-text-white">
+                                                {contentType || "text/plain"}
+                                            </span>
+                                        </div>
+                                        <pre className="whitespace-pre-wrap break-all text-text-grey">
+                                            {prettyString}
+                                        </pre>
+                                    </div>
+                                )
+                            ) : (
+                                <div className="text-text-muted font-mono text-[11px] italic p-3">
+                                    {"// No response preview available."}
                                 </div>
                             )}
                         </div>

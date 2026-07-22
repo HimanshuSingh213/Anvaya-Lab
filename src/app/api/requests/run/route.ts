@@ -196,7 +196,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
                 timeout: settings?.timeout ?? 8000,
                 maxRedirects: settings?.followRedirects === false ? 0 : 5,
                 validateStatus: () => true,
-                responseType: "text",
+                responseType: "arraybuffer",
             });
         } catch (err: any) {
             const endTime = performance.now();
@@ -216,13 +216,36 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
         const endTime = performance.now();
         const duration = Math.round(endTime - startTime);
 
-        // Calculating the response payload size
-        const responseBodyStr = typeof response.data === "string" ? response.data : JSON.stringify(response.data || "")
+        const responseBuffer = Buffer.from(response.data || "");
+        const rawContentType = (
+            response.headers['content-type'] || 
+            response.headers['Content-Type'] || 
+            ""
+        ).toString().toLowerCase();
 
+        const isImage = rawContentType.includes("image/") && !rawContentType.includes("image/svg+xml");
+
+        let responseBodyStr = "";
+        let finalBody: any = "";
+
+        if (isImage) {
+            const mime = rawContentType.split(";")[0].trim() || "image/png";
+            const base64Str = responseBuffer.toString("base64");
+            finalBody = `data:${mime};base64,${base64Str}`;
+            responseBodyStr = finalBody;
+        } else {
+            responseBodyStr = responseBuffer.toString("utf-8");
+            finalBody = responseBodyStr;
+            try {
+                finalBody = JSON.parse(responseBodyStr);
+            } catch { }
+        }
+
+        // Calculating the response payload size
         const headerSize = Object.entries(response.headers).reduce(
             (acc, [key, val]) => acc + key.length + String(val).length, 0
         );
-        const payloadSize = Buffer.byteLength(responseBodyStr, "utf-8") + headerSize;
+        const payloadSize = responseBuffer.length + headerSize;
 
         // Enforce max response size limit
         const limitSizeMB = settings?.maxSize ?? 10;
@@ -239,12 +262,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
                 }
             }, { status: 200 });
         }
-
-        // Auto-parsing JSON response if possible
-        let finalBody = responseBodyStr;
-        try {
-            finalBody = JSON.parse(responseBodyStr);
-        } catch { }
 
         const statusCode = response.status;
         const statusGroup = statusCode >= 200 && statusCode < 300 ? "2xx" :

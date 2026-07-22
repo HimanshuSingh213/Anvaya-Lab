@@ -561,7 +561,27 @@ export default function RequestCreator() {
 
                 clearTimeout(timeoutTimer);
 
-                const responseText = await fetchRes.text();
+                const rawContentType = (fetchRes.headers.get("content-type") || "").toLowerCase();
+                const isImage = rawContentType.includes("image/") && !rawContentType.includes("image/svg+xml");
+
+                let responseText = "";
+                let parsedBody: any = "";
+
+                if (isImage) {
+                    const blob = await fetchRes.blob();
+                    const reader = new FileReader();
+                    responseText = await new Promise<string>((resolve) => {
+                        reader.onloadend = () => resolve(reader.result as string);
+                        reader.readAsDataURL(blob);
+                    });
+                    parsedBody = responseText;
+                } else {
+                    responseText = await fetchRes.text();
+                    parsedBody = responseText;
+                    try {
+                        parsedBody = JSON.parse(responseText);
+                    } catch {}
+                }
 
                 // Enforce max response size limit on direct agent requests
                 if (responseText.length > settings.maxSize * 1024 * 1024) {
@@ -570,11 +590,6 @@ export default function RequestCreator() {
 
                 const endTime = performance.now();
                 const duration = Math.round(endTime - startTime);
-
-                let parsedBody = responseText;
-                try {
-                    parsedBody = JSON.parse(responseText);
-                } catch {}
 
                 const headersObj: Record<string, string> = {};
                 fetchRes.headers.forEach((val, key) => {
